@@ -1,5 +1,6 @@
 import { canOperate } from './access.js';
 import { acceptedLines, latestFiles } from './board.js';
+import { agentActive } from './delivery.js';
 import { httpError } from '../platform/kit.js';
 import { formatMilli, toMilli } from './quantity.js';
 import { lineKey } from './rules/lines.js';
@@ -88,7 +89,7 @@ export async function batchDetail(app, user, id) {
       approve: operator && batch.status === 'VALIDATED',
       cancel: operator && CANCELLABLE.includes(batch.status),
       sendAnyway: operator && batch.status === 'DUPLICATE',
-      markUploaded: operator && Boolean(manualUpload) && ['BUILT', 'UPLOAD_UNCERTAIN'].includes(batch.status),
+      markUploaded: operator && Boolean(manualUpload) && ['BUILT', 'UPLOAD_UNCERTAIN'].includes(batch.status) && !(batch.status === 'BUILT' && agentActive(app)),
       resolve: operator && ['NO_RESPONSE', 'UPLOAD_UNCERTAIN'].includes(batch.status),
       download: Boolean(file),
     },

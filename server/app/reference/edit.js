@@ -55,7 +55,7 @@ export async function saveContract(app, user, id, body) {
   requireOperator(user);
   const [pipelines, contracts] = await Promise.all([app.store.listPipelines(), app.store.listContracts()]);
   const contract = readContract(body ?? {}, pipelines);
-  if (contracts.some((other) => other.code === contract.code && other.id !== id)) throw httpError(409, `There is already a contract ${contract.code}.`);
+  if (contracts.some((other) => other.code.toLowerCase() === contract.code.toLowerCase() && other.id !== id)) throw httpError(409, `There is already a contract ${contract.code}.`);
   let saved;
   if (id === null) {
     saved = await app.store.createContract(contract);
@@ -110,7 +110,7 @@ export async function saveDesignation(app, user, id, body = {}) {
   if (!isGasDay(point.validFrom)) problems.push('Valid from is a date, yyyy-mm-dd.');
   if (point.validTo && (!isGasDay(point.validTo) || point.validTo < point.validFrom)) problems.push('Valid to is a date on or after valid from, or blank.');
   if (problems.length) throw httpError(400, problems.join(' '));
-  if (designations.some((other) => other.pipelineCode === point.pipelineCode && other.code === point.code && other.validFrom === point.validFrom)) {
+  if (designations.some((other) => other.pipelineCode === point.pipelineCode && other.code.toLowerCase() === point.code.toLowerCase() && other.validFrom === point.validFrom)) {
     throw httpError(409, `${point.code} on ${point.pipelineCode} already starts on ${point.validFrom}.`);
   }
   const saved = await app.store.createDesignation(point);

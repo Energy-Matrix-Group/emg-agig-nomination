@@ -156,7 +156,8 @@ export function createMemoryStore({ clock = () => new Date() } = {}) {
       return body ? { ...withoutBody(file), body: Buffer.from(file.body) } : withoutBody(file);
     },
     async findFileByName(fileName) {
-      const file = files.find((candidate) => candidate.fileName === fileName);
+      // As SQL Server's default collation compares: without regard to case.
+      const file = files.find((candidate) => candidate.fileName.toLowerCase() === String(fileName).toLowerCase());
       return file ? withoutBody(file) : null;
     },
     async listFiles({ status = null, batchIds = null } = {}) {
@@ -207,9 +208,9 @@ export function createMemoryStore({ clock = () => new Date() } = {}) {
       alerts.push(record);
       return { alert: copy(record), created: true };
     },
-    async listAlerts({ open = null, afterId = null, limit = 200 } = {}) {
+    async listAlerts({ open = null, afterId = null, limit = 200, oldestFirst = false } = {}) {
       return alerts.filter((alert) => (open === null || !alert.clearedAt === open) && (afterId === null || alert.id > afterId))
-        .sort((a, b) => b.id - a.id).slice(0, limit).map(copy);
+        .sort((a, b) => (oldestFirst ? a.id - b.id : b.id - a.id)).slice(0, limit).map(copy);
     },
     async updateAlert(id, patch) {
       const record = alerts.find((alert) => alert.id === id);

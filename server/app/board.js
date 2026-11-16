@@ -90,6 +90,7 @@ export async function gasDayBoard(app) {
     else if (latest && NEEDS_ATTENTION.includes(latest.status)) [colour, label] = ['red', STATUS_LABELS[latest.status]];
     else if (inFlight) [colour, label] = ['blue', 'Sent, waiting for AGIG'];
     else if (latest && accepted && latest.id === accepted.id) [colour, label] = ['green', 'Accepted'];
+    else if (now > renomination && latest && PENDING.includes(latest.status)) [colour, label] = ['red', held.length ? 'Cutoff passed, newer numbers never sent' : 'Cutoff passed, nothing accepted'];
     else if (latest && PENDING.includes(latest.status)) [colour, label] = ['amber', accepted ? 'Newer numbers not sent yet' : 'Published, not sent yet'];
     else if (!held.length && now > renomination) [colour, label] = ['red', 'Cutoff passed, nothing accepted'];
     else if (held.length) [colour, label] = ['green', 'Accepted'];

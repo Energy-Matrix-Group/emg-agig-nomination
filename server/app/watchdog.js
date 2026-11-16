@@ -1,11 +1,12 @@
 import { clear, gasDayEntity, raise } from './alerts.js';
 import { gasDayBoard } from './board.js';
-import { filesInFlight } from './delivery.js';
+import { filesInFlight, pastCutoff } from './delivery.js';
 import { addDays, awstMinutes, daysBetween, initialCutoff, minutesOfDay, renominationCutoff } from './time.js';
 
 // The watchdog, every minute: nobody needs to watch the screen. It raises an alert when
 //   - AGIG has not answered a file within NOM_RESPONSE_TIMEOUT_MINUTES (it is never assumed accepted);
 //   - the upload agent took a file and has not said what happened for 10 minutes;
+//   - a built file was never sent and its 20:00 cutoff has passed;
 //   - it is NOM_INITIAL_ALERT_TIME (13:00) on D-1 and nothing is accepted for D, or today's 20:00 cutoff is
 //     within the warning and nothing is accepted for today;
 //   - newer numbers than AGIG accepted are not sent, within NOM_CUTOFF_WARNING_MINUTES of a cutoff;
@@ -21,7 +22,12 @@ export async function watchdog(app) {
   const now = app.clock();
   const { settings } = app;
 
-  for (const file of await filesInFlight(app)) {
+  const inFlight = await filesInFlight(app);
+  // The upload timer belongs to the agent's latest claim (delivery.js sets it): a file no longer uploading has none.
+  for (const id of app.runtime.uploadingSince.keys()) {
+    if (!inFlight.some((file) => file.id === id && file.status === 'UPLOADING')) app.runtime.uploadingSince.delete(id);
+  }
+  for (const file of inFlight) {
     if (file.status === 'UPLOADED' && file.uploadedAt) {
       const minutes = Math.floor((now - new Date(file.uploadedAt)) / 60_000);
       if (minutes >= settings.responseTimeoutMinutes && await app.store.updateFile(file.id, { status: 'NO_RESPONSE' }, { from: ['UPLOADED'] })) {
@@ -37,6 +43,15 @@ export async function watchdog(app) {
         await raise(app, 'UPLOAD_UNCERTAIN', 'Critical', `The upload agent took ${file.fileName} and never said whether it arrived. Check, then settle batch ${file.batchId}.`, 'Batch', file.batchId);
         app.runtime.uploadingSince.delete(file.id);
       }
+    }
+  }
+
+  // A built file that was never sent and is past its 20:00 cutoff: AGIG would reject it, and the agent no longer
+  // hands it out. Someone cancels it, and publishes any later days again.
+  for (const file of await app.store.listFiles({ status: 'BUILT' })) {
+    const batch = await app.store.getBatch(file.batchId);
+    if (batch?.status === 'BUILT' && batch.environment === settings.environment && pastCutoff(app, batch)) {
+      await raise(app, 'LATE', 'Critical', `Batch ${batch.id} was never sent, and the 20:00 cutoff for ${batch.gasDayFrom} has passed, so AGIG would reject it (502). Cancel it, and publish any later days again.`, 'Batch', batch.id);
     }
   }
 

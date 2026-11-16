@@ -15,7 +15,10 @@ import { awstToday, daysBetween } from './time.js';
 export const PREFIX = '/api/agig-nomination';
 const LARGE = { limit: 1_000_000 }; // a pasted batch of 2,000 lines, or an AGIG response
 
-const idOf = (params, name = 'id') => (/^\d{1,9}$/.test(params[name] ?? '') ? Number(params[name]) : NaN);
+function idOf(params, name = 'id') {
+  if (!/^\d{1,9}$/.test(params[name] ?? '')) throw httpError(404, 'There is no such record.');
+  return Number(params[name]);
+}
 
 // A database that could not be used leaves the app on memory: it takes no changes that would be lost on a
 // restart, and it never acts on the outside world (docs/ARCHITECTURE.md, 3.1).
@@ -81,7 +84,7 @@ async function alertAction({ res, params, user, app }, change) {
   requireOperator(user);
   refuseOffline(app);
   const id = idOf(params);
-  const alert = Number.isInteger(id) ? await app.store.updateAlert(id, change(user, app.clock())) : null;
+  const alert = await app.store.updateAlert(id, change(user, app.clock()));
   if (!alert) throw httpError(404, 'There is no such alert.');
   ok(res, { alert });
 }
@@ -124,7 +127,7 @@ export function createRoutes(prefix = PREFIX) {
     route('GET', '/batches/:id', async ({ res, params, user, app }) => ok(res, await batchDetail(app, user, idOf(params)))),
     route('GET', '/batches/:id/file', async ({ res, params, app }) => {
       const id = idOf(params);
-      const files = Number.isInteger(id) ? await app.store.listFiles({ batchIds: [id] }) : [];
+      const files = await app.store.listFiles({ batchIds: [id] });
       const chosen = files.filter((file) => file.status !== 'FAILED').at(-1) ?? files.at(-1);
       if (!chosen) throw httpError(404, 'This batch has no file.');
       const file = await app.store.getFile(chosen.id, { body: true });
@@ -140,7 +143,7 @@ export function createRoutes(prefix = PREFIX) {
     route('POST', '/responses', async ({ req, res, user, app }) => { refuseOffline(app); send(201)(res, await uploadResponse(app, user, await readJson(req, LARGE))); }),
     route('GET', '/responses/:id/file', async ({ res, params, app }) => {
       const id = idOf(params);
-      const response = Number.isInteger(id) ? await app.store.getResponse(id) : null;
+      const response = await app.store.getResponse(id);
       if (!response?.rawCsv) throw httpError(404, 'There is no such response file.');
       const name = (response.attachmentName || `response-${id}.csv`).replace(/[^A-Za-z0-9._ -]/g, '_');
       sendFile(res, { body: Buffer.from(response.rawCsv, 'utf8'), contentType: 'text/csv; charset=utf-8', filename: name });

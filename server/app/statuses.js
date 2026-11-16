@@ -26,4 +26,3 @@ export const IN_FLIGHT = ['UPLOADING', 'UPLOADED']; // with AGIG, no answer yet
 export const NEEDS_ATTENTION = ['REJECTED', 'NO_RESPONSE', 'UPLOAD_UNCERTAIN'];
 export const CANCELLABLE = ['IMPORTED', 'VALIDATION_FAILED', 'VALIDATED', 'APPROVED', 'BUILT', 'DUPLICATE'];
 export const SET_ASIDE = ['DUPLICATE', 'CANCELLED', 'SUPERSEDED']; // never counted as the latest numbers
-export const UNSENT_FILE = ['BUILT', 'UPLOAD_UNCERTAIN', 'UPLOADING'];

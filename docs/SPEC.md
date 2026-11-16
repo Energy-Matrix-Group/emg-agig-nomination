@@ -23,9 +23,12 @@ It implements the design "AGIG TBS B2B Nomination Integration – Solution Desig
 
 Publish makes a batch, `VALIDATED`. With `NOM_AUTO_APPROVE` on (the default) publishing is the approval: it becomes `APPROVED` and its file is built at once (`BUILT`). Then the file is sent by hand or by the upload agent (`UPLOADED`; `UPLOADING` while the agent sends it), and AGIG's answer makes it `ACCEPTED` or `REJECTED`, with each error pinned to its line. No answer within `NOM_RESPONSE_TIMEOUT_MINUTES` makes it `NO_RESPONSE`; a failure part way through an upload makes it `UPLOAD_UNCERTAIN`. Neither is ever assumed accepted or sent again by itself: a person checks with AGIG or the TBS portal and settles it. A late answer still counts.
 
-- **Duplicate:** the same numbers as the latest accepted batch for the same Gas Days are not sent (`DUPLICATE`), unless someone presses Send anyway.
-- **Superseded:** publishing again for days that have a batch waiting to be sent (validated, approved or built) sets that batch aside (`SUPERSEDED`) and its file can no longer be sent. A rejected batch is never edited: the corrected lines are published again and the new batch records which one it replaces.
-- **One file in flight:** AGIG processes files in the order they arrive, so the upload agent sends the next file only once the last has an answer, unless the next file's initial cutoff is within `NOM_CUTOFF_WARNING_MINUTES`. By hand, the batch page says when another file is still waiting.
+- **Old numbers never follow newer ones.** Publishing for days that have a batch waiting to be sent (validated, approved or built) always sets that batch aside (`SUPERSEDED`): its file can no longer be sent, and a waiting batch that also covered other days is named in the warning so those days can be published again. A file whose fate was unknown is not sent again once a newer batch covers any of its days, and the agent sets aside a file it could not send if a newer batch was published meanwhile. A rejected batch is never edited: the corrected lines are published again and the new batch records which one it replaces.
+- **Duplicate:** a batch is not sent (`DUPLICATE`) only when, for every one of its Gas Days, its lines are exactly what AGIG holds (every field, every line, no more and no fewer), and no file for those days is with AGIG or of unknown fate. Send anyway sends it all the same.
+- **Nothing goes after its cutoff:** the agent never takes a file whose first Gas Day's 20:00 cutoff has passed, and an alert asks for it to be cancelled. By hand it can still be recorded as uploaded (it may have gone in time), with a warning.
+- **One file in flight:** AGIG processes files in the order they arrive, so the upload agent sends the next file only once the last has an answer; a file whose initial cutoff is within `NOM_CUTOFF_WARNING_MINUTES` goes ahead of older ones that can wait. By hand, the batch page says when another file is still waiting.
+- **Nothing goes twice:** while the upload agent is at work (it has asked for work in the last 10 minutes), a built file is the agent's to send, and Mark as uploaded is refused for it. Each claim of a file gets its own 10 minutes to report back before the file is taken as uncertain.
+- **AGIG's answer outranks a guess:** a batch settled by hand takes AGIG's first real answer when it comes, with an alert if they disagree. A second real answer for a file is kept and changes nothing.
 - **Cancel** is for a batch not yet sent.
 
 ## Gas Day board
@@ -73,6 +76,7 @@ Raised once while open, shown on the System page and the board, and posted to Te
 - Contract-to-point pairing, point limits and missing points are not checked here (AGIG reports them).
 - The upload agent's PowerShell script is not run by the tests (they run on Linux); its two routes are.
 - Draft lines are kept in the person's browser until published, not on the server.
+- Contract and point codes are unique without regard to case, as SQL Server compares them.
 
 ## Open questions (for AGIG, from the design)
 

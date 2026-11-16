@@ -182,7 +182,7 @@ test('the same numbers AGIG already accepted are a duplicate, not sent unless so
 
     const again = await publish(ops, dayLines());
     assert.equal(again.data.batch.status, 'DUPLICATE');
-    assert.match(again.data.warnings[0], /same numbers AGIG accepted in batch 1/);
+    assert.match(again.data.warnings[0], /numbers AGIG already holds for these Gas Days \(accepted in batch 1\)/);
     const sent = await ops.call(`/batches/${again.data.batch.id}/send-anyway`, { method: 'POST' });
     assert.equal(sent.data.batch.status, 'BUILT');
   });

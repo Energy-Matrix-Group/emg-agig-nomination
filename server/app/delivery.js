@@ -1,9 +1,9 @@
 import { actorOf, requireOperator } from './access.js';
 import { clear, gasDayEntity, raise } from './alerts.js';
-import { audit, batchOr404 } from './batches.js';
+import { audit, batchOr404, newerBatch } from './batches.js';
 import { httpError } from '../platform/kit.js';
-import { IN_FLIGHT, UNSENT_FILE } from './statuses.js';
-import { initialCutoff } from './time.js';
+import { IN_FLIGHT } from './statuses.js';
+import { initialCutoff, renominationCutoff } from './time.js';
 
 // Getting a built file to AGIG's SFTP, and settling a file whose fate is unknown.
 //
@@ -29,23 +29,47 @@ export async function filesInFlight(app) {
   return files.filter((file) => here.has(file.batchId));
 }
 
+// Whether the upload agent is at work: it is set up and has asked for work in the last 10 minutes. While it is, a
+// built file is its to send, so nobody also uploads it by hand (AGIG would get it twice).
+const AGENT_ACTIVE_MS = 10 * 60_000;
+
+export function agentActive(app) {
+  return app.settings.agentEnabled && Boolean(app.runtime.agentSeenAt) && app.clock() - app.runtime.agentSeenAt < AGENT_ACTIVE_MS;
+}
+
+// A file is past its time once the 20:00 cutoff of its first Gas Day has gone: AGIG rejects such a file (502).
+export const pastCutoff = (app, batch) => app.clock() > renominationCutoff(batch.gasDayFrom);
+
+const MANUAL_FROM = ['BUILT', 'UPLOAD_UNCERTAIN'];
+
 export async function markUploaded(app, user, id) {
   requireOperator(user);
   const batch = await batchOr404(app, id);
   const file = await liveFile(app, id);
-  if (!file || !UNSENT_FILE.includes(file.status) || !['BUILT', 'UPLOAD_UNCERTAIN', 'UPLOADING'].includes(batch.status)) {
-    throw httpError(409, `Batch ${id} has no file waiting to be sent.`);
+  if (!file || !MANUAL_FROM.includes(file.status) || !MANUAL_FROM.includes(batch.status)) {
+    throw httpError(409, `Batch ${id} has no file waiting to be sent by hand.`);
+  }
+  if (batch.status === 'BUILT' && agentActive(app)) {
+    throw httpError(409, 'The upload agent on the office VM is sending files and will send this one. Upload it by hand only if the agent stops.');
   }
   const others = (await filesInFlight(app)).filter((other) => other.id !== file.id);
   const now = app.clock();
-  if (!await app.store.updateFile(file.id, { status: 'UPLOADED', uploadedAt: now }, { from: UNSENT_FILE })) throw httpError(409, 'The file changed just now. Look again.');
-  await app.store.updateBatch(id, { status: 'UPLOADED' }, { from: ['BUILT', 'UPLOAD_UNCERTAIN', 'UPLOADING'] });
+  if (!await app.store.updateFile(file.id, { status: 'UPLOADED', uploadedAt: now }, { from: MANUAL_FROM })) throw httpError(409, 'The file changed just now. Look again.');
+  await app.store.updateBatch(id, { status: 'UPLOADED' }, { from: MANUAL_FROM });
   await clear(app, 'UPLOAD_UNCERTAIN', 'Batch', id);
+  await clear(app, 'LATE', 'Batch', id);
   await audit(app, user, 'batch.mark-uploaded', id, file.fileName);
-  const warnings = others.length
-    ? [`${others.map((other) => other.fileName).join(', ')} is still waiting for AGIG's answer. AGIG processes files in the order they arrive.`]
-    : [];
+  const warnings = [];
+  if (others.length) warnings.push(`${others.map((other) => other.fileName).join(', ')} is still waiting for AGIG's answer. AGIG processes files in the order they arrive.`);
+  if (pastCutoff(app, batch)) warnings.push(`The 20:00 cutoff for ${batch.gasDayFrom} has passed: if AGIG received the file after it, AGIG rejects those lines (502).`);
   return { batch: await app.store.getBatch(id), warnings };
+}
+
+// Sets aside a built batch that must not go: a newer batch replaced it.
+async function setAside(app, batch, file, note) {
+  if (!await app.store.updateBatch(batch.id, { status: 'SUPERSEDED' }, { from: ['BUILT', 'UPLOADING'] })) return false;
+  if (file) await app.store.updateFile(file.id, { status: 'FAILED', lastError: note });
+  return true;
 }
 
 // For a file with no answer, or an upload that may not have arrived, once someone has checked with AGIG or in
@@ -72,6 +96,8 @@ export async function resolve(app, user, id, body) {
     await app.store.updateBatch(id, { status: 'REJECTED' }, { from });
     await settleAlerts(app, id, batch, false);
   } else {
+    const newer = await newerBatch(app, batch);
+    if (newer) throw httpError(409, `Batch ${newer.id}, published later for these Gas Days, has the newer numbers, so this file is not sent again. Settle this one as rejected.`);
     if (file) await app.store.updateFile(file.id, { status: 'BUILT', uploadedAt: null, lastError: `Sent again by ${by}${note ? `: ${note}` : ''}` });
     await app.store.updateBatch(id, { status: 'BUILT' }, { from });
     await settleAlerts(app, id, batch, false);
@@ -98,27 +124,40 @@ function nextDay(day) {
   return date.toISOString().slice(0, 10);
 }
 
-// The upload agent asks for the next file. It gets the oldest built file, unless another is still with AGIG
-// (one in flight at a time), except within the cutoff warning of the file's first initial cutoff, when waiting
-// could miss it. Claiming moves the file and batch to UPLOADING, so it is handed out once.
+// The upload agent asks for the next file. It gets the oldest built file that may still go, unless another is
+// still with AGIG (one in flight at a time); then only a file whose first initial cutoff is within the cutoff
+// warning goes, since waiting could miss it. A file past its 20:00 cutoff is never handed out (the watchdog
+// raises an alert for it), and one that a newer batch replaced is set aside, so old numbers never follow new ones.
+// Claiming moves the batch, then the file, to UPLOADING, so it is handed out once, and a cancel cannot slip in.
 export async function claimNext(app) {
-  app.runtime.agentSeenAt = app.clock();
+  const now = app.clock();
+  app.runtime.agentSeenAt = now;
   const inFlight = await filesInFlight(app);
-  const waiting = await app.store.listFiles({ status: 'BUILT' });
-  for (const file of waiting) {
+  const candidates = [];
+  for (const file of await app.store.listFiles({ status: 'BUILT' })) {
     const batch = await app.store.getBatch(file.batchId);
-    if (!batch || batch.environment !== app.settings.environment || batch.status !== 'BUILT') continue;
-    const urgent = initialCutoff(batch.gasDayFrom).getTime() - app.clock().getTime() < app.settings.cutoffWarningMinutes * 60_000;
-    if (inFlight.length && !urgent) return { file: null, waitingFor: inFlight[0].fileName };
-    if (!await app.store.updateFile(file.id, { status: 'UPLOADING', attempts: '+1' }, { from: ['BUILT'] })) continue;
-    await app.store.updateBatch(batch.id, { status: 'UPLOADING' }, { from: ['BUILT'] });
-    const full = await app.store.getFile(file.id, { body: true });
-    return {
-      file: { id: full.id, batchId: batch.id, fileName: full.fileName, sha256: full.sha256, size: full.body.length, body: full.body.toString('base64') },
-      environment: app.settings.environment,
-    };
+    if (!batch || batch.environment !== app.settings.environment || batch.status !== 'BUILT' || pastCutoff(app, batch)) continue;
+    const newer = await newerBatch(app, batch);
+    if (newer) {
+      await setAside(app, batch, file, `Not sent: batch ${newer.id} replaced it.`);
+      continue;
+    }
+    const urgent = initialCutoff(batch.gasDayFrom).getTime() - now.getTime() < app.settings.cutoffWarningMinutes * 60_000;
+    candidates.push({ file, batch, urgent });
   }
-  return { file: null };
+  const pick = inFlight.length ? candidates.find((candidate) => candidate.urgent) : candidates[0];
+  if (!pick) return candidates.length && inFlight.length ? { file: null, waitingFor: inFlight[0].fileName } : { file: null };
+  if (!await app.store.updateBatch(pick.batch.id, { status: 'UPLOADING' }, { from: ['BUILT'] })) return { file: null };
+  if (!await app.store.updateFile(pick.file.id, { status: 'UPLOADING', attempts: '+1' }, { from: ['BUILT'] })) {
+    await app.store.updateBatch(pick.batch.id, { status: 'BUILT' }, { from: ['UPLOADING'] });
+    return { file: null };
+  }
+  app.runtime.uploadingSince.set(pick.file.id, now);
+  const full = await app.store.getFile(pick.file.id, { body: true });
+  return {
+    file: { id: full.id, batchId: pick.batch.id, fileName: full.fileName, sha256: full.sha256, size: full.body.length, body: full.body.toString('base64') },
+    environment: app.settings.environment,
+  };
 }
 
 // What the agent says happened: uploaded (with the size it found on AGIG's server), not sent (the connection
@@ -131,6 +170,7 @@ export async function agentResult(app, fileId, body) {
   if (file.status !== 'UPLOADING') throw httpError(409, `${file.fileName} is not being uploaded.`);
   const error = typeof body?.error === 'string' ? body.error.trim().slice(0, 1000) : null;
   const batchId = file.batchId;
+  app.runtime.uploadingSince.delete(fileId);
   if (body?.outcome === 'uploaded') {
     const remoteSize = Number.isInteger(body.remoteSize) ? body.remoteSize : null;
     if (remoteSize !== file.body.length) {
@@ -145,6 +185,10 @@ export async function agentResult(app, fileId, body) {
     return { recorded: 'uploaded' };
   }
   if (body?.outcome === 'not-sent') {
+    // A newer batch published while this one was being tried has the newer numbers: this one must not go now.
+    const batch = await app.store.getBatch(batchId);
+    const newer = batch ? await newerBatch(app, batch) : null;
+    if (newer && await setAside(app, batch, file, `Not sent: batch ${newer.id} replaced it.`)) return { recorded: 'superseded' };
     await app.store.updateFile(fileId, { status: 'BUILT', lastError: error ?? 'The agent could not connect.' }, { from: ['UPLOADING'] });
     await app.store.updateBatch(batchId, { status: 'BUILT' }, { from: ['UPLOADING'] });
     if (file.attempts >= 3) await raise(app, 'UPLOAD_FAILED', 'Critical', `${file.fileName} could not be sent after ${file.attempts} tries: ${error ?? 'no reason given'}`, 'Batch', batchId);

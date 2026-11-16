@@ -7,6 +7,7 @@ export const ALERT_TYPES = {
   NO_RESPONSE: 'No answer from AGIG',
   UPLOAD_UNCERTAIN: 'Upload uncertain',
   UPLOAD_FAILED: 'Upload keeps failing',
+  LATE: 'A file missed its cutoff',
   CUTOFF: 'Cutoff close with nothing accepted',
   STALE: 'Newer numbers not sent',
   KEY_EXPIRY: 'SFTP key expiring',

@@ -11,7 +11,7 @@ export async function startTeams(app) {
 
 export async function postNewAlerts(app) {
   if (!app.settings.teamsWebhook) return 0;
-  const fresh = (await app.store.listAlerts({ afterId: app.runtime.postedThrough, limit: 20 })).reverse();
+  const fresh = await app.store.listAlerts({ afterId: app.runtime.postedThrough, limit: 20, oldestFirst: true });
   let posted = 0;
   for (const alert of fresh) {
     if (alert.severity !== 'Info') {

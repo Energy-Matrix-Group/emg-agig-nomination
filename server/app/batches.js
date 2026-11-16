@@ -1,11 +1,12 @@
 import { actorOf, requireOperator } from './access.js';
 import { httpError } from '../platform/kit.js';
+import { acceptedLines, latestFiles } from './board.js';
 import { formatMilli } from './quantity.js';
 import { checkLines, countIssues } from './rules/check.js';
-import { cleanLine, MAX_LINES, shnomRow } from './rules/lines.js';
+import { cleanLine, lineKey, MAX_LINES, shnomRow } from './rules/lines.js';
 import { buildShnom, sha256, shnomFileName } from './shnom.js';
-import { CANCELLABLE, PENDING } from './statuses.js';
-import { renominationCutoff } from './time.js';
+import { CANCELLABLE, IN_FLIGHT, PENDING, SET_ASIDE } from './statuses.js';
+import { isGasDay, renominationCutoff } from './time.js';
 
 // Publishing a nomination and the steps after it inside the app: approve, build the SHNOM file, cancel, send a
 // duplicate anyway. This is the design's Publish macro, ingest job, usp_ValidateBatch, auto-approval and build
@@ -13,7 +14,7 @@ import { renominationCutoff } from './time.js';
 
 // What the checks need: the reference data and the Spot awards for the Gas Days in the lines.
 export async function checkContext(app, lines) {
-  const days = lines.map((line) => line.gasDay).filter((day) => /^\d{4}-\d{2}-\d{2}$/.test(day)).sort();
+  const days = lines.map((line) => line.gasDay).filter(isGasDay).sort();
   const [contracts, designations, spotAwards] = await Promise.all([
     app.store.listContracts(),
     app.store.listDesignations(),
@@ -61,15 +62,19 @@ export async function publish(app, user, body) {
   const kind = SOURCES[body.source?.kind] ? body.source.kind : 'grid';
   const name = typeof body.source?.name === 'string' ? body.source.name.trim().slice(0, 200) : '';
   const sourceFile = `${SOURCES[kind]}${name ? `: ${name}` : ''}`;
-  const contentSha256 = sha256(JSON.stringify(stored.map((row) => [row.gasDay, row.contract, row.nomType, row.designation, row.quantityTJ]).sort()));
+  const contentSha256 = sha256(JSON.stringify(stored.map((row) => [row.gasDay, fingerprint(row)]).sort()));
   const sourceSha256 = sha256(JSON.stringify({ stored, by: user.id, at: now.toISOString(), sourceFile }));
 
   const environment = app.settings.environment;
   const overlapping = await app.store.listBatches({ from: gasDayFrom, to: gasDayTo, environment, limit: 500 });
-  const lastAccepted = overlapping.find((batch) => batch.status === 'ACCEPTED' && batch.gasDayFrom === gasDayFrom && batch.gasDayTo === gasDayTo);
-  const duplicate = lastAccepted?.contentSha256 === contentSha256;
+  // A batch waiting to be sent for any of these days is set aside, always: these lines are the newer numbers.
+  const supersede = overlapping.filter((batch) => PENDING.includes(batch.status));
+  // A duplicate is only what AGIG already holds, line for line, for every one of its days, and only while no
+  // file for those days is with AGIG or of unknown fate (AGIG may then hold something else by the time it answers).
+  const unsettled = overlapping.some((batch) => [...IN_FLIGHT, 'UPLOAD_UNCERTAIN', 'NO_RESPONSE'].includes(batch.status));
+  const heldIn = unsettled ? null : await sameAsHeld(app, overlapping, stored);
+  const duplicate = Boolean(heldIn);
   const replaces = overlapping.find((batch) => !['CANCELLED', 'DUPLICATE'].includes(batch.status)) ?? null;
-  const supersede = duplicate ? [] : overlapping.filter((batch) => PENDING.includes(batch.status)).map((batch) => batch.id);
 
   const batch = await app.store.createBatch({
     batch: {
@@ -78,15 +83,54 @@ export async function publish(app, user, body) {
     },
     rows: stored,
     issues: issues.filter((issue) => issue.severity === 'Warning'),
-    supersede: { ids: supersede, from: PENDING, fileNote: 'Not sent: a newer batch replaced it.' },
+    supersede: { ids: supersede.map((old) => old.id), from: PENDING, fileNote: 'Not sent: a newer batch replaced it.' },
   });
   await audit(app, user, 'batch.publish', batch.id, `${stored.length} lines for ${gasDayFrom}${gasDayTo !== gasDayFrom ? ` to ${gasDayTo}` : ''}`);
 
   const warnings = [];
-  if (supersede.length) warnings.push(`Batch ${supersede.join(', ')} had not been sent and is now superseded by this one.`);
-  if (duplicate) warnings.push(`These are the same numbers AGIG accepted in batch ${lastAccepted.id}, so nothing is sent. Use "Send anyway" if it must go again.`);
+  if (supersede.length) warnings.push(`Batch ${supersede.map((old) => old.id).join(', ')} had not been sent and is now superseded by this one.`);
+  for (const old of supersede.filter((other) => other.gasDayFrom < gasDayFrom || other.gasDayTo > gasDayTo)) {
+    warnings.push(`Batch ${old.id} also had lines for days this batch does not cover (it ran ${old.gasDayFrom} to ${old.gasDayTo}). Those lines are no longer waiting to be sent: publish them again if they must go.`);
+  }
+  if (duplicate) warnings.push(`These are the numbers AGIG already holds for these Gas Days (accepted in batch ${heldIn}), so nothing is sent. Use "Send anyway" if it must go again.`);
   else if (app.settings.autoApprove) warnings.push(...await approveAndBuild(app, user, batch.id, { automatic: true }));
   return { status: 201, body: { batch: await app.store.getBatch(batch.id), warnings } };
+}
+
+// Every field AGIG receives for a row, so a corrected service type or location is a change even when the
+// quantities are the same.
+function fingerprint(row) {
+  return [row.shipper, row.pipeline, row.contract, row.nomType, row.marketer ?? '', row.serviceType ?? '', row.subServiceType ?? '',
+    row.designation, row.designationLocation ?? '', row.quantityTJ].join('|');
+}
+
+// The id of the latest accepted batch when these rows are exactly what AGIG holds for each of their Gas Days
+// (every line it holds, and no other), else null.
+async function sameAsHeld(app, overlapping, stored) {
+  const accepted = overlapping.filter((batch) => batch.status === 'ACCEPTED');
+  if (!accepted.length) return null;
+  const ids = accepted.map((batch) => batch.id);
+  const [files, rows] = await Promise.all([app.store.listFiles({ batchIds: ids }), app.store.listRows(ids)]);
+  const filesByBatch = latestFiles(files);
+  const rowsByBatch = new Map();
+  for (const row of rows) rowsByBatch.set(row.batchId, [...(rowsByBatch.get(row.batchId) ?? []), row]);
+  for (const day of new Set(stored.map((row) => row.gasDay))) {
+    const held = acceptedLines(accepted, filesByBatch, rowsByBatch, day);
+    const mine = stored.filter((row) => row.gasDay === day);
+    if (held.size !== mine.length) return null;
+    for (const row of mine) {
+      const theirs = held.get(lineKey(row));
+      if (!theirs || fingerprint(theirs) !== fingerprint(row)) return null;
+    }
+  }
+  return accepted[0].id;
+}
+
+// The batch published after this one for any of its Gas Days, if one counts (not cancelled, a duplicate or set
+// aside). Its numbers are the newer ones, so this batch's file must never reach AGIG after it.
+export async function newerBatch(app, batch) {
+  const others = await app.store.listBatches({ from: batch.gasDayFrom, to: batch.gasDayTo, environment: batch.environment, limit: 500 });
+  return others.find((other) => other.id > batch.id && !SET_ASIDE.includes(other.status)) ?? null;
 }
 
 // Approval, and the file right after it. With auto-approval on, publishing is the approval and the publisher is

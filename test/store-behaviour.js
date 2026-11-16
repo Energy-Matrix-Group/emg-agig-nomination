@@ -72,6 +72,7 @@ export async function storeBehaviour(store) {
   const uploaded = await store.findFileByName('SHNOM_Test_20261116100001.csv');
   assert.deepEqual([uploaded.status, uploaded.attempts, uploaded.remoteSize, uploaded.uploadedAt], ['UPLOADED', 1, body.length, '2026-11-16T02:05:00.000Z']);
   assert.deepEqual((await store.listFiles({ status: ['UPLOADED'] })).map((item) => item.id), [sent.id]);
+  assert.equal((await store.findFileByName('shnom_test_20261116100001.CSV'))?.id, sent.id, 'file names match without regard to case, as SQL Server compares them');
 
   // A response, its errors and the new statuses land together; linking a stray one later does too.
   const response = await store.recordResponse({
@@ -98,6 +99,8 @@ export async function storeBehaviour(store) {
   assert.equal(await store.clearAlerts({ type: 'REJECTED', entityType: 'Batch', entityId: second.id }), 1);
   assert.equal((await store.listAlerts({ open: true })).length, 1);
   assert.equal((await store.listAlerts({ afterId: raised.alert.id })).length, 1);
+  const allAlerts = await store.listAlerts({});
+  assert.deepEqual((await store.listAlerts({ oldestFirst: true })).map((alert) => alert.id), allAlerts.map((alert) => alert.id).reverse());
   assert.equal((await store.raiseAlert({ type: 'REJECTED', severity: 'Critical', message: 'New.', entityType: 'Batch', entityId: second.id })).created, true);
 
   // The audit trail, newest first.

@@ -154,11 +154,11 @@ export function opsStore(pool, s) {
         return { alert: mapAlert(created.recordset[0]), created: true };
       });
     },
-    async listAlerts({ open = null, afterId = null, limit = 200 } = {}) {
+    async listAlerts({ open = null, afterId = null, limit = 200, oldestFirst = false } = {}) {
       const result = await query(pool, `SELECT TOP (@limit) * FROM ${s.ops}.Alert
         WHERE (@open IS NULL OR (@open = 1 AND ClearedAtUtc IS NULL) OR (@open = 0 AND ClearedAtUtc IS NOT NULL))
           AND (@afterId IS NULL OR AlertId > @afterId)
-        ORDER BY AlertId DESC`, {
+        ORDER BY AlertId ${oldestFirst ? 'ASC' : 'DESC'}`, {
         limit: [sql.Int, limit], open: [sql.Bit, open === null ? null : open], afterId: [sql.Int, afterId],
       });
       return result.recordset.map(mapAlert);

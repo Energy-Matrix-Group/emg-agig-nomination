@@ -72,7 +72,11 @@ async function applyToFile(app, { file, parsed, warnSubject, store }) {
   const rows = await app.store.listRows([file.batchId]);
   const rowByLine = new Map(rows.map((row) => [row.csvLineNumber, row.id]));
   const errors = parsed.errors.map((error) => ({ ...error, batchRowId: rowByLine.get(error.lineNumber) ?? null }));
-  const settled = file.status === 'RESPONDED';
+  // A file already has an answer once AGIG has sent one. One settled by hand (after checking the TBS portal) has
+  // not: AGIG's first real answer still decides it, with an alert when it says otherwise.
+  const earlier = (await app.store.listResponses({ fileIds: [file.id], limit: 5 })).filter((other) => ['MATCHED', 'MANUAL'].includes(other.matchState));
+  const settled = earlier.length > 0;
+  const byHand = !settled && ['ACCEPTED', 'REJECTED'].includes(batch.status);
   const accepted = parsed.status === 'Success';
   const now = app.clock();
   const response = await store({
@@ -86,6 +90,9 @@ async function applyToFile(app, { file, parsed, warnSubject, store }) {
     return { response, repeated: true };
   }
   await settleAlerts(app, batch.id, batch, accepted);
+  if (byHand && (batch.status === 'ACCEPTED') !== accepted) {
+    await raise(app, 'RESPONSE_REVIEW', 'Critical', `AGIG's answer for ${file.fileName} is ${parsed.status}, but batch ${batch.id} had been settled by hand as ${batch.status.toLowerCase()}. AGIG's answer now stands.`, 'Response', response.id);
+  }
   if (!accepted) {
     const codes = [...new Set(errors.map((error) => error.errorCode))];
     await raise(app, 'REJECTED', 'Critical', `AGIG rejected batch ${batch.id} (${file.fileName}): ${codes.length ? `errors ${codes.join(', ')}` : 'no reasons given'}. Fix the lines and publish again.`, 'Batch', batch.id);
