@@ -89,7 +89,7 @@ EMG runs on DigitalOcean App Platform in Sydney (SYD1). To deploy this app to te
 2. Set its component-level variables: `APP_ID` (`agig-nomination`), `APP_URL`, `APP_SESSION_SECRET` (its own, Encrypt), `APP_SESSION_MINUTES`, and the `NOM_*` settings above (secrets Encrypt).
 3. Add `AGIG_NOMINATION_SQL_DATABASE` to the app-level variables. The database is the app's own: a new empty one, or the one the design's setup script built.
 4. Health check path `/health`; build `npm run build`, run `npm start`.
-5. In the portal's Admin Settings, Applications: give AGIG Nominations its address, switch it on and tick who may open it.
+5. In the portal's Admin Settings, Applications, add the app: id `agig-nomination` (it must equal `APP_ID`), name `AGIG Nominations`, a one-line description, its address (the component's https address, no path) and icon `agig-nomination`, and switch it on. Then, under Users, tick **AGIG Nominations** for each person who should open it. The portal shows the generic Applications icon until it has template 1.6.5, which has this app's icon; the app's own pages have it already.
 
 A component's log is on the app's Runtime Logs tab. `render.yaml` is left over from Render; DigitalOcean does not read it, and `test/render-blueprint.test.js` still checks it.
 
