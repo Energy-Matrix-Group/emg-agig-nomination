@@ -1,0 +1,423 @@
+/* Shared components: panels, cards, badges, people, tables, messages, buttons-as-links, figures.
+   Loaded by /platform/app.css. New platform classes start with "emg-" so they never clash with an app's own. */
+
+/* ---------- Eyebrow, the small coral line above a title ---------- */
+.emg-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 0.6rem;
+  color: var(--emg-accent-ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.emg-eyebrow::after {
+  content: "";
+  width: 30px;
+  height: 2px;
+  flex: none;
+  background: var(--emg-accent);
+}
+
+/* ---------- Links that look like buttons ---------- */
+.emg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.55rem 1.15rem;
+  border: 2px solid var(--emg-primary);
+  background: var(--emg-primary);
+  color: var(--emg-on-primary);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.emg-btn:hover { background: var(--emg-primary-hover); border-color: var(--emg-primary-hover); }
+
+.emg-btn--line { background: transparent; border-color: var(--emg-accent); color: var(--emg-accent-ink); }
+
+.emg-btn--line:hover { background: var(--emg-accent); border-color: var(--emg-accent); color: var(--emg-white); }
+
+.emg-btn--quiet { background: transparent; border-color: var(--emg-line-strong); color: var(--emg-text); }
+
+.emg-btn--quiet:hover { background: var(--emg-raised); border-color: var(--emg-text-faint); }
+
+.emg-btn--sm { min-height: 36px; padding: 0.35rem 0.8rem; font-size: 0.82rem; }
+
+.emg-arrow { width: 17px; height: 17px; flex: none; transition: transform 200ms ease; }
+
+.emg-btn:hover .emg-arrow, .choice:hover .emg-arrow { transform: translateX(3px); }
+
+/* ---------- Panels ---------- */
+.panel, .placeholder {
+  position: relative;
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.35rem 1.5rem;
+  background: var(--emg-panel);
+  border: 1.5px solid var(--emg-line-strong);
+}
+
+/* A short coral bar on the top edge, as on the brand's figures. */
+.panel::before, .placeholder::before {
+  content: "";
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 44px;
+  height: 3px;
+  background: var(--emg-accent);
+}
+
+/* A panel's heading: a coral diamond, then the words. */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--emg-heading);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.section-label::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: none;
+  background: var(--emg-accent);
+  transform: rotate(45deg);
+}
+
+/* ---------- People ---------- */
+.person {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.85rem 1rem;
+  background: var(--emg-bg-alt);
+  border: 1px solid var(--emg-line);
+}
+
+.person strong { display: block; color: var(--emg-heading); font-size: 0.98rem; }
+
+.person p { color: var(--emg-text-muted); font-size: 0.85rem; }
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  background: var(--emg-navy);
+  color: var(--emg-white);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.person > .pill, .person__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.people { display: grid; gap: 0.65rem; }
+
+.person__actions select { width: auto; min-width: 8.5rem; margin: 0; }
+
+/* ---------- Badges: square, with a diamond ---------- */
+.tag, .pill, .emg-badge {
+  --badge: var(--emg-text-faint);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: max-content;
+  min-height: 1.45rem;
+  padding: 0.1rem 0.55rem 0.1rem 0.5rem;
+  border: 1.5px solid var(--badge);
+  color: var(--emg-text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.tag::before, .pill::before, .emg-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  background: var(--badge);
+  transform: rotate(45deg);
+}
+
+.pill-role, .emg-badge--navy { --badge: var(--emg-tone-navy); color: var(--emg-tone-navy-ink); }
+
+.pill-success, .emg-badge--good { --badge: var(--emg-good); background: var(--emg-good-bg); color: var(--emg-good); }
+
+.pill-closed { --badge: var(--emg-text-faint); background: var(--emg-raised); color: var(--emg-text-muted); }
+
+.emg-badge--coral { --badge: var(--emg-accent); background: var(--emg-accent-soft); color: var(--emg-accent-ink); }
+
+.emg-badge--warn { --badge: var(--emg-warn-line); background: var(--emg-warn-bg); color: var(--emg-warn); }
+
+.emg-badge--bad { --badge: var(--emg-bad); background: var(--emg-bad-bg); color: var(--emg-bad); }
+
+.emg-badge--info { --badge: var(--emg-feature); background: var(--emg-info-bg); color: var(--emg-info-ink); }
+
+/* ---------- App cards (the portal's list, and any list of places to go) ---------- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 1.25rem;
+}
+
+.choice {
+  --tone: var(--emg-tone-navy);
+  --tone-ink: var(--emg-tone-navy-ink);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-height: 13rem;
+  padding: 1.5rem 1.5rem 1.1rem;
+  background: var(--emg-panel);
+  border: 2px solid var(--tone);
+  color: var(--emg-text);
+  text-decoration: none;
+  transition: transform 250ms var(--emg-ease-out), box-shadow 250ms ease;
+}
+
+a.choice:hover { transform: translateY(-4px); box-shadow: var(--emg-shadow); }
+
+.choice:nth-child(4n + 2) { --tone: var(--emg-tone-coral); --tone-ink: var(--emg-tone-coral-ink); }
+
+.choice:nth-child(4n + 3) { --tone: var(--emg-tone-blue); --tone-ink: var(--emg-tone-blue-ink); }
+
+.choice:nth-child(4n + 4) { --tone: var(--emg-tone-ink); --tone-ink: var(--emg-tone-ink-ink); }
+
+.choice__icon {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 0.35rem;
+  color: var(--tone);
+}
+
+.choice__icon .icon { width: 40px; height: 40px; stroke-width: 1.4; }
+
+.choice h2 { color: var(--tone-ink); font-size: 1.3rem; letter-spacing: -0.015em; }
+
+.choice p { color: var(--emg-text-muted); font-size: 0.92rem; line-height: 1.55; }
+
+.choice__go {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-self: stretch;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--emg-line);
+  color: var(--tone-ink);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.choice__go span { display: inline-flex; align-items: center; gap: 0.5rem; }
+
+.choice .tag { margin-top: 0.15rem; }
+
+/* ---------- Generic card with a header ---------- */
+.emg-card {
+  background: var(--emg-panel);
+  border: 1.5px solid var(--emg-line-strong);
+}
+
+.emg-card > header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.85rem 1.15rem;
+  border-bottom: 1px solid var(--emg-line);
+}
+
+.emg-card > header h2 { flex: 1 1 auto; font-size: 1rem; }
+
+.emg-card > .emg-card__body { padding: 1.1rem 1.15rem; }
+
+.emg-card > footer {
+  padding: 0.75rem 1.15rem;
+  border-top: 1px solid var(--emg-line);
+  background: var(--emg-raised);
+  color: var(--emg-text-muted);
+  font-size: 0.8rem;
+}
+
+/* ---------- Figures ---------- */
+.emg-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 1rem;
+}
+
+.emg-kpi {
+  position: relative;
+  padding: 1rem 1.05rem 0.9rem;
+  background: var(--emg-panel);
+  border: 1.5px solid var(--emg-line-strong);
+}
+
+.emg-kpi::before {
+  content: "";
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 44px;
+  height: 3px;
+  background: var(--emg-accent);
+}
+
+.emg-kpi__label { color: var(--emg-text-muted); font-size: 0.8rem; font-weight: 600; }
+
+.emg-kpi__value {
+  margin-top: 0.2rem;
+  color: var(--emg-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.emg-kpi__note { margin-top: 0.2rem; color: var(--emg-text-muted); font-size: 0.8rem; }
+
+/* ---------- Tables ---------- */
+.table-wrap {
+  position: relative; /* keeps anything positioned inside the table within its scroll box */
+  overflow-x: auto;
+  background: var(--emg-panel);
+  border: 1.5px solid var(--emg-line-strong);
+}
+
+/* ---------- Messages and callouts ---------- */
+.message, .emg-callout {
+  --tone: var(--emg-bad);
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--tone);
+  background: var(--emg-bad-bg);
+  color: var(--emg-bad);
+  font-weight: 600;
+}
+
+.message.ok, .emg-callout--good { --tone: var(--emg-good); background: var(--emg-good-bg); color: var(--emg-good); }
+
+.emg-callout--info { --tone: var(--emg-feature); background: var(--emg-info-bg); color: var(--emg-info-ink); }
+
+.emg-callout--warn { --tone: var(--emg-warn-line); background: var(--emg-warn-bg); color: var(--emg-warn); }
+
+.emg-callout--note { --tone: var(--emg-accent); background: var(--emg-accent-soft); color: var(--emg-text); font-weight: 500; }
+
+.dev-banner {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 34px;
+  margin: 0;
+  padding: 0.45rem 1rem;
+  background: repeating-linear-gradient(-45deg, #F5A524 0 14px, #F2B33F 14px 28px);
+  color: var(--emg-charcoal);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.dev-banner::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: none;
+  background: var(--emg-charcoal);
+  transform: rotate(45deg);
+}
+
+@media (max-width: 640px) {
+  .dev-banner { font-size: 0.72rem; text-align: left; }
+}
+
+/* ---------- Empty state ---------- */
+.emg-empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1.25rem;
+  color: var(--emg-text-muted);
+  text-align: center;
+}
+
+.emg-empty strong { color: var(--emg-heading); font-size: 1.05rem; }
+
+.level-notes {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--emg-text-muted);
+  font-weight: 400;
+}
+
+@media (max-width: 900px) {
+  .person { flex-wrap: wrap; }
+
+  .person__actions { margin-left: 0; }
+
+  .choice { min-height: 0; }
+}
+
+/* ---------- Layout helper: a column of blocks with the canvas's rhythm ---------- */
+.emg-stack {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* ---------- A section's heading row: the heading, and a count or note on the right ---------- */
+.emg-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--emg-line);
+}
+
+.emg-count {
+  color: var(--emg-text-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}

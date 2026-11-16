@@ -1,0 +1,108 @@
+@import url("/platform/tokens.css");
+
+/* The wait screen for a database that is starting after a cost-saving pause.
+   /platform/db-wake.js builds it, and the server adds both files to every page.
+   The spinner is the Energy Matrix loader: the mark blows apart, snaps back and spins once. */
+
+.db-wake {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  /* Opaque where color-mix is unknown, so the page behind is never left readable. */
+  background: #161B22;
+  background: color-mix(in srgb, #161B22 74%, transparent);
+  -webkit-backdrop-filter: blur(6px) saturate(1.1);
+  backdrop-filter: blur(6px) saturate(1.1);
+  font-family: var(--emg-font-sans);
+  animation: db-wake-in 240ms ease-out both;
+}
+
+.db-wake:focus { outline: none; }
+
+.db-wake__panel {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 0.65rem;
+  width: min(100%, 27rem);
+  padding: 1.75rem 2rem 2rem;
+  background: var(--emg-panel);
+  border: 1.5px solid var(--emg-line-strong);
+  box-shadow: var(--emg-shadow);
+  color: var(--emg-text);
+  font-size: 1rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* The brand's coral bar on the panel's top edge. */
+.db-wake__panel::before {
+  content: "";
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: 44px;
+  height: 3px;
+  background: var(--emg-accent);
+}
+
+.db-wake__spinner {
+  width: 132px;
+  height: 132px;
+  margin: -0.5rem 0 -0.35rem;
+  background: var(--emg-loader) center / contain no-repeat;
+}
+
+.db-wake__title {
+  margin: 0;
+  color: var(--emg-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+.db-wake__message { margin: 0; }
+
+.db-wake__hint,
+.db-wake__elapsed,
+.db-wake__slow {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--emg-text-muted);
+}
+
+.db-wake__elapsed {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--emg-accent-ink);
+}
+
+.db-wake__slow {
+  font-weight: 600;
+  color: var(--emg-text);
+}
+
+.db-wake [hidden] { display: none; }
+
+@keyframes db-wake-in {
+  from { opacity: 0; }
+}
+
+@keyframes db-wake-pulse {
+  50% { opacity: 0.45; }
+}
+
+/* A mark that keeps flying apart is exactly what these settings ask to avoid: show it still, breathing. */
+@media (prefers-reduced-motion: reduce) {
+  .db-wake { animation: none; }
+
+  .db-wake__spinner {
+    background-image: url("/platform/logo/favicon.svg");
+    background-size: 56%;
+    animation: db-wake-pulse 2.4s ease-in-out infinite;
+  }
+}

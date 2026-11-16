@@ -1,0 +1,21 @@
+/* The shared stylesheet every EMG page links: <link rel="stylesheet" href="/platform/app.css">.
+   It only gathers the layers, so each stays small enough to read:
+
+   tokens.css      brand colours, semantic light and dark tokens, type, geometry
+   base.css        reset, type, buttons, form controls, tables
+   chrome.css      the shell, the charcoal sidebar, the page header, the brand diamonds
+   signin.css      the sign-in page
+   components.css  panels, cards, badges, people, figures, messages
+   motion.css      the logo loader, the start-up splash, the inline mark, entrances
+   soon.css        the hero, the stage track and the roadmap of planned screens
+   band.css        the cards in the band of apps on the way */
+
+@import url("/platform/tokens.css");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap");
+@import url("/platform/base.css");
+@import url("/platform/chrome.css");
+@import url("/platform/signin.css");
+@import url("/platform/components.css");
+@import url("/platform/motion.css");
+@import url("/platform/soon.css");
+@import url("/platform/band.css");

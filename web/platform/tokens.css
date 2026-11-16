@@ -1,0 +1,400 @@
+/* Energy Matrix Group design tokens, version 2 (template 1.1.0)
+   Official: Brand Style Guide Issue 1, May 2025
+   Look and feel: the "How we build software" guide and the electricity retail prototype
+   (Montserrat, navy and coral, square geometry, the diamond mark, light and dark themes).
+
+   Two kinds of token live here:
+   - Brand and legacy tokens (--emg-indigo, --emg-coral, --emg-app-primary, ...) keep one value in both themes.
+     Older app styles use them; they stay so nothing breaks.
+   - Semantic tokens (--emg-bg, --emg-panel, --emg-text, --emg-heading, --emg-line, --emg-primary, ...) change with
+     the theme. New styles use these, so a page is right in light and dark without extra rules.
+
+   The theme follows the system unless the page sets <html data-theme="light|dark">. The platform layer sets that
+   attribute before the first paint from localStorage "emg-theme" (see theme.js). */
+
+:root {
+  /* Official primary */
+  --emg-indigo: #2A3240;       /* Primary: Indigo */
+  --emg-warm-peach: #E57455;   /* Primary: Warm Peach (CTA / accent) */
+
+  /* Official secondary */
+  --emg-light-blue: #CCEBF7;   /* Light Blue */
+  --emg-sky-blue: #9DC0D7;     /* Sky Blue */
+  --emg-corporate-blue: #425B7E; /* Corporate Blue */
+
+  /* Aliases used in digital work */
+  --emg-coral: #E47454;
+  --emg-navy: #415A7E;
+  --emg-slate-navy: var(--emg-indigo);
+  --emg-steel: var(--emg-corporate-blue);
+  --emg-sky: var(--emg-sky-blue);
+  --emg-ice: var(--emg-light-blue);
+  --emg-feature: #5A8DB6;
+
+  /* Document / presentation extras from official templates */
+  --emg-doc-heading: #336699;
+  --emg-doc-body: #595959;
+  --emg-doc-letter: #2A3240;
+
+  /* Fixed surfaces and ink (the same in both themes) */
+  --emg-charcoal: #2B3340;
+  --emg-ink: #231F20;
+  --emg-black: #000000;
+  --emg-white: #FFFFFF;
+  --emg-surface: #F7FAFC;
+  --emg-surface-alt: #EDF2F7;
+  --emg-surface-muted: #F4F7FA;
+  --emg-border: #E2E8F0;
+  --emg-muted: #718096;
+  --emg-muted-strong: #4A5568; /* 7.5:1 on white; use for small text that must meet 4.5:1 */
+
+  /* Status colours (fixed) */
+  --emg-success: #13612E;
+  --emg-info: #1159AF;
+  --emg-warning: #F5A524;
+  --emg-warning-strong: #F7630C;
+  --emg-danger: #B82105;
+  --emg-danger-ui: #D0392E;
+
+  /* App chrome (fixed). The sidebar is the brand's charcoal band; actions are navy. */
+  --emg-app-sidebar: #2B3340;
+  --emg-app-primary: #415A7E;
+
+  /* Typography. Montserrat for screens; Century Gothic for printed documents. */
+  --emg-font-design: "Montserrat", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --emg-font-document: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+  --emg-font-sans: var(--emg-font-design);
+  --emg-font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Geometry: square, as on energymatrix.com.au. The pill radius is kept for the rare round control. */
+  --emg-content-width: 1280px;
+  --emg-radius-sm: 0;
+  --emg-radius-md: 0;
+  --emg-radius-lg: 0;
+  --emg-radius-pill: 999px;
+  --emg-sidebar-width: 264px;
+
+  /* Motion */
+  --emg-ease-out: cubic-bezier(.2, .75, .25, 1);
+  --emg-ease-snap: cubic-bezier(.5, -0.3, .3, 1.4);
+
+  /* ---- Semantic tokens: light ---- */
+  --emg-bg: #FFFFFF;
+  --emg-bg-alt: #F7FAFC;
+  --emg-panel: #FFFFFF;
+  --emg-raised: #F4F7FA;
+  --emg-hover: rgba(65, 90, 126, .055);
+  --emg-text: #2B3340;
+  --emg-heading: #415A7E;
+  --emg-text-muted: #566275;
+  --emg-text-faint: #8793A5;
+  --emg-line: #E2E8F0;
+  --emg-line-strong: #CBD5E0;
+  --emg-gridline: rgba(65, 90, 126, .055);
+  --emg-accent: #E06C4B;
+  --emg-accent-ink: #B5492A;
+  --emg-accent-soft: #FCEDE8;
+  --emg-primary: #415A7E;
+  --emg-primary-hover: #2B3340;
+  --emg-on-primary: #FFFFFF;
+  --emg-link: #415A7E;
+  --emg-focus: #1F6FD1;
+  --emg-deco-a: #EDF2F7;
+  --emg-deco-b: #FCEDE8;
+  --emg-logo-dark: #2E3541;
+  --emg-logo-word: #231F20;
+  --emg-good: #23794A;
+  --emg-good-bg: #E4F3EA;
+  --emg-warn: #7F5200;
+  --emg-warn-bg: #FFF2D2;
+  --emg-warn-line: #D49300;
+  --emg-bad: #B8322A;
+  --emg-bad-bg: #FBE6E4;
+  --emg-info-ink: #2F6690;
+  --emg-info-bg: #E5EFF6;
+  --emg-shadow: 0 1px 2px rgba(43, 51, 64, .05), 0 22px 44px -26px rgba(43, 51, 64, .38);
+  --emg-shadow-sm: 0 6px 18px -10px rgba(43, 51, 64, .35);
+  --emg-scrim: rgba(22, 27, 34, .55);
+  --emg-loader: url("/platform/logo/loader.svg");
+  /* Card tones: a border colour and the text colour that goes with it. */
+  --emg-tone-navy: #415A7E;
+  --emg-tone-navy-ink: #415A7E;
+  --emg-tone-coral: #E06C4B;
+  --emg-tone-coral-ink: #B5492A;
+  --emg-tone-blue: #5A8DB6;
+  --emg-tone-blue-ink: #3B729E;
+  --emg-tone-ink: #2B3340;
+  --emg-tone-ink-ink: #2B3340;
+  --emg-tone-green: #2E8B57;
+  --emg-tone-green-ink: #23794A;
+
+  /* Charts. Series 1 to 8 are assigned in this order, never cycled; the fuel colours follow the energy industry's
+     convention (coal black, wind green, solar yellow). docs/STYLE-GUIDE.md, section 3.4, says how to use them. */
+  --emg-series-1: #2A78D6;
+  --emg-series-2: #EB6834;
+  --emg-series-3: #1BAF7A;
+  --emg-series-4: #EDA100;
+  --emg-series-5: #E87BA4;
+  --emg-series-6: #008300;
+  --emg-series-7: #6250D6;
+  --emg-series-8: #E34948;
+  --emg-fuel-coal: #2F3540;
+  --emg-fuel-brown-coal: #7A5230;
+  --emg-fuel-gas: #8C95A3;
+  --emg-fuel-distillate: #B23A2E;
+  --emg-fuel-bioenergy: #7CB342;
+  --emg-fuel-hydro: #2A78D6;
+  --emg-fuel-solar-rooftop: #E8622A;
+  --emg-fuel-solar-utility: #E5B400;
+  --emg-fuel-wind: #1F8A4C;
+  --emg-fuel-battery: #19A7C4;
+  --emg-fuel-battery-charging: #6250D6;
+  --emg-fuel-imports: #D55181;
+  --emg-fuel-exports: #C3CAD4;
+  --emg-chart-price: #AEB6C1;
+
+  /* The sidebar is charcoal in both themes. */
+  --emg-nav-bg: #2B3340;
+  --emg-nav-ink: #B7C2D0;
+  --emg-nav-ink-strong: #FFFFFF;
+  --emg-nav-line: rgba(255, 255, 255, .12);
+  --emg-nav-hover: rgba(255, 255, 255, .07);
+  --emg-nav-active: rgba(255, 255, 255, .11);
+
+  color-scheme: light;
+}
+
+/* ---- Semantic tokens: dark (system setting, unless the page says light) ---- */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --emg-bg: #161B22;
+    --emg-bg-alt: #1A2029;
+    --emg-panel: #222A35;
+    --emg-raised: #262E3A;
+    --emg-hover: rgba(157, 192, 215, .07);
+    --emg-text: #E8EEF5;
+    --emg-heading: #F4F7FB;
+    --emg-text-muted: #A9B5C6;
+    --emg-text-faint: #7C889A;
+    --emg-line: #2C3542;
+    --emg-line-strong: #3A4655;
+    --emg-gridline: rgba(157, 192, 215, .05);
+    --emg-accent: #E47454;
+    --emg-accent-ink: #F49C80;
+    --emg-accent-soft: rgba(228, 116, 84, .13);
+    --emg-primary: #E47454;
+    --emg-primary-hover: #F08A6C;
+    --emg-on-primary: #161B22;
+    --emg-link: #A3BBE0;
+    --emg-focus: #7DB4FF;
+    --emg-deco-a: #1C232D;
+    --emg-deco-b: #241F23;
+    --emg-logo-dark: #FFFFFF;
+    --emg-logo-word: #FFFFFF;
+    --emg-good: #6FD9A2;
+    --emg-good-bg: rgba(79, 201, 138, .14);
+    --emg-warn: #F3C04A;
+    --emg-warn-bg: rgba(243, 192, 74, .13);
+    --emg-warn-line: #D9A02B;
+    --emg-bad: #FF8C85;
+    --emg-bad-bg: rgba(255, 110, 99, .14);
+    --emg-info-ink: #BFE0F0;
+    --emg-info-bg: rgba(157, 192, 215, .14);
+    --emg-shadow: 0 1px 0 rgba(0, 0, 0, .25), 0 24px 54px -26px rgba(0, 0, 0, .75);
+    --emg-shadow-sm: 0 6px 18px -10px rgba(0, 0, 0, .7);
+    --emg-scrim: rgba(5, 8, 12, .7);
+    --emg-loader: url("/platform/logo/loader-on-dark.svg");
+  --emg-tone-navy: #7D9BCB;
+  --emg-tone-navy-ink: #A3BBE0;
+  --emg-tone-coral: #EE7F5F;
+  --emg-tone-coral-ink: #F49C80;
+  --emg-tone-blue: #A9D4EA;
+  --emg-tone-blue-ink: #BFE0F0;
+  --emg-tone-ink: #E8EEF5;
+  --emg-tone-ink-ink: #E8EEF5;
+  --emg-tone-green: #4FC98A;
+  --emg-tone-green-ink: #6FD9A2;
+    --emg-series-1: #3987E5;
+    --emg-series-2: #D95926;
+    --emg-series-3: #199E70;
+    --emg-series-4: #C98500;
+    --emg-series-5: #D55181;
+    --emg-series-6: #008300;
+    --emg-series-7: #9085E9;
+    --emg-series-8: #E66767;
+    --emg-fuel-coal: #A3ACB9;
+    --emg-fuel-brown-coal: #C08347;
+    --emg-fuel-gas: #626B79;
+    --emg-fuel-distillate: #D4574A;
+    --emg-fuel-bioenergy: #78AD45;
+    --emg-fuel-hydro: #3987E5;
+    --emg-fuel-solar-rooftop: #D95926;
+    --emg-fuel-solar-utility: #C9A200;
+    --emg-fuel-wind: #23905A;
+    --emg-fuel-battery: #33B7DC;
+    --emg-fuel-battery-charging: #9085E9;
+    --emg-fuel-imports: #D55181;
+    --emg-fuel-exports: #4F5866;
+    --emg-chart-price: #5B6573;
+    --emg-nav-bg: #1F252E;
+    --emg-nav-ink: #A9B5C6;
+    --emg-nav-line: rgba(255, 255, 255, .09);
+    color-scheme: dark;
+  }
+}
+
+/* ---- Semantic tokens: dark (chosen on the page) ---- */
+:root[data-theme="dark"] {
+  --emg-bg: #161B22;
+  --emg-bg-alt: #1A2029;
+  --emg-panel: #222A35;
+  --emg-raised: #262E3A;
+  --emg-hover: rgba(157, 192, 215, .07);
+  --emg-text: #E8EEF5;
+  --emg-heading: #F4F7FB;
+  --emg-text-muted: #A9B5C6;
+  --emg-text-faint: #7C889A;
+  --emg-line: #2C3542;
+  --emg-line-strong: #3A4655;
+  --emg-gridline: rgba(157, 192, 215, .05);
+  --emg-accent: #E47454;
+  --emg-accent-ink: #F49C80;
+  --emg-accent-soft: rgba(228, 116, 84, .13);
+  --emg-primary: #E47454;
+  --emg-primary-hover: #F08A6C;
+  --emg-on-primary: #161B22;
+  --emg-link: #A3BBE0;
+  --emg-focus: #7DB4FF;
+  --emg-deco-a: #1C232D;
+  --emg-deco-b: #241F23;
+  --emg-logo-dark: #FFFFFF;
+  --emg-logo-word: #FFFFFF;
+  --emg-good: #6FD9A2;
+  --emg-good-bg: rgba(79, 201, 138, .14);
+  --emg-warn: #F3C04A;
+  --emg-warn-bg: rgba(243, 192, 74, .13);
+  --emg-warn-line: #D9A02B;
+  --emg-bad: #FF8C85;
+  --emg-bad-bg: rgba(255, 110, 99, .14);
+  --emg-info-ink: #BFE0F0;
+  --emg-info-bg: rgba(157, 192, 215, .14);
+  --emg-shadow: 0 1px 0 rgba(0, 0, 0, .25), 0 24px 54px -26px rgba(0, 0, 0, .75);
+  --emg-shadow-sm: 0 6px 18px -10px rgba(0, 0, 0, .7);
+  --emg-scrim: rgba(5, 8, 12, .7);
+  --emg-loader: url("/platform/logo/loader-on-dark.svg");
+  --emg-tone-navy: #7D9BCB;
+  --emg-tone-navy-ink: #A3BBE0;
+  --emg-tone-coral: #EE7F5F;
+  --emg-tone-coral-ink: #F49C80;
+  --emg-tone-blue: #A9D4EA;
+  --emg-tone-blue-ink: #BFE0F0;
+  --emg-tone-ink: #E8EEF5;
+  --emg-tone-ink-ink: #E8EEF5;
+  --emg-tone-green: #4FC98A;
+  --emg-tone-green-ink: #6FD9A2;
+  --emg-series-1: #3987E5;
+  --emg-series-2: #D95926;
+  --emg-series-3: #199E70;
+  --emg-series-4: #C98500;
+  --emg-series-5: #D55181;
+  --emg-series-6: #008300;
+  --emg-series-7: #9085E9;
+  --emg-series-8: #E66767;
+  --emg-fuel-coal: #A3ACB9;
+  --emg-fuel-brown-coal: #C08347;
+  --emg-fuel-gas: #626B79;
+  --emg-fuel-distillate: #D4574A;
+  --emg-fuel-bioenergy: #78AD45;
+  --emg-fuel-hydro: #3987E5;
+  --emg-fuel-solar-rooftop: #D95926;
+  --emg-fuel-solar-utility: #C9A200;
+  --emg-fuel-wind: #23905A;
+  --emg-fuel-battery: #33B7DC;
+  --emg-fuel-battery-charging: #9085E9;
+  --emg-fuel-imports: #D55181;
+  --emg-fuel-exports: #4F5866;
+  --emg-chart-price: #5B6573;
+  --emg-nav-bg: #1F252E;
+  --emg-nav-ink: #A9B5C6;
+  --emg-nav-line: rgba(255, 255, 255, .09);
+  color-scheme: dark;
+}
+
+/* ---- Print: always the light colours, so paper is never dark whatever the screen's theme ---- */
+@media print {
+  :root:root:root {
+    --emg-bg: #FFFFFF;
+    --emg-bg-alt: #F7FAFC;
+    --emg-panel: #FFFFFF;
+    --emg-raised: #F4F7FA;
+    --emg-hover: rgba(65, 90, 126, .055);
+    --emg-text: #2B3340;
+    --emg-heading: #415A7E;
+    --emg-text-muted: #566275;
+    --emg-text-faint: #8793A5;
+    --emg-line: #E2E8F0;
+    --emg-line-strong: #CBD5E0;
+    --emg-gridline: rgba(65, 90, 126, .055);
+    --emg-accent: #E06C4B;
+    --emg-accent-ink: #B5492A;
+    --emg-accent-soft: #FCEDE8;
+    --emg-primary: #415A7E;
+    --emg-primary-hover: #2B3340;
+    --emg-on-primary: #FFFFFF;
+    --emg-link: #415A7E;
+    --emg-focus: #1F6FD1;
+    --emg-deco-a: #EDF2F7;
+    --emg-deco-b: #FCEDE8;
+    --emg-logo-dark: #2E3541;
+    --emg-logo-word: #231F20;
+    --emg-good: #23794A;
+    --emg-good-bg: #E4F3EA;
+    --emg-warn: #7F5200;
+    --emg-warn-bg: #FFF2D2;
+    --emg-warn-line: #D49300;
+    --emg-bad: #B8322A;
+    --emg-bad-bg: #FBE6E4;
+    --emg-info-ink: #2F6690;
+    --emg-info-bg: #E5EFF6;
+    --emg-shadow: 0 1px 2px rgba(43, 51, 64, .05), 0 22px 44px -26px rgba(43, 51, 64, .38);
+    --emg-shadow-sm: 0 6px 18px -10px rgba(43, 51, 64, .35);
+    --emg-scrim: rgba(22, 27, 34, .55);
+    --emg-loader: url("/platform/logo/loader.svg");
+    --emg-tone-navy: #415A7E;
+    --emg-tone-navy-ink: #415A7E;
+    --emg-tone-coral: #E06C4B;
+    --emg-tone-coral-ink: #B5492A;
+    --emg-tone-blue: #5A8DB6;
+    --emg-tone-blue-ink: #3B729E;
+    --emg-tone-ink: #2B3340;
+    --emg-tone-ink-ink: #2B3340;
+    --emg-tone-green: #2E8B57;
+    --emg-tone-green-ink: #23794A;
+    --emg-series-1: #2A78D6;
+    --emg-series-2: #EB6834;
+    --emg-series-3: #1BAF7A;
+    --emg-series-4: #EDA100;
+    --emg-series-5: #E87BA4;
+    --emg-series-6: #008300;
+    --emg-series-7: #6250D6;
+    --emg-series-8: #E34948;
+    --emg-fuel-coal: #2F3540;
+    --emg-fuel-brown-coal: #7A5230;
+    --emg-fuel-gas: #8C95A3;
+    --emg-fuel-distillate: #B23A2E;
+    --emg-fuel-bioenergy: #7CB342;
+    --emg-fuel-hydro: #2A78D6;
+    --emg-fuel-solar-rooftop: #E8622A;
+    --emg-fuel-solar-utility: #E5B400;
+    --emg-fuel-wind: #1F8A4C;
+    --emg-fuel-battery: #19A7C4;
+    --emg-fuel-battery-charging: #6250D6;
+    --emg-fuel-imports: #D55181;
+    --emg-fuel-exports: #C3CAD4;
+    --emg-chart-price: #AEB6C1;
+    --emg-nav-bg: #2B3340;
+    --emg-nav-ink: #B7C2D0;
+    --emg-nav-line: rgba(255, 255, 255, .12);
+    color-scheme: light;
+  }
+}

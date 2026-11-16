@@ -1,0 +1,121 @@
+name: Tests
+
+# Runs every test on each pull request into `test` and on each change that lands on `test`, so a broken change is caught
+# before it is merged and `test` is not left red. The same file is in every EMG app repo; it comes from emg-app-template.
+#
+# "All tests passed" is the one check to require on `test` (repository Settings, Branches). It fails when any job before
+# it did, so a job added here later needs no change to that setting.
+on:
+  pull_request:
+    branches: [test]
+  push:
+    branches: [test]
+
+permissions:
+  contents: read
+
+# A pull request has one run at a time, and a newer push replaces the one before it. Every commit that lands on `test` gets
+# a run of its own, which is never cut short, so a red `test` is always traced to the change that made it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  server:
+    name: Build and server tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install the dependencies
+        run: npm ci
+
+      # Builds web/ into web/dist when it is a Vite project. A static UI has nothing to build.
+      - name: Build the UI
+        run: npm run build
+
+      # Every test that needs no browser: the server's, and a Vite UI's own (Vitest) where the app has them.
+      - name: Tests
+        run: npm test
+
+  ui:
+    name: Browser UI tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # A repo with no browser tests yet (*.ui.js anywhere under test/ui/) passes this job without running anything.
+      - name: Look for browser tests
+        id: look
+        run: |
+          if find test/ui -name '*.ui.js' 2>/dev/null | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No browser tests in test/ui/, so there is nothing to run."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.look.outputs.found == 'true'
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install the dependencies
+        if: steps.look.outputs.found == 'true'
+        run: npm ci
+
+      - name: Build the UI
+        if: steps.look.outputs.found == 'true'
+        run: npm run build
+
+      # The version comes from the repo's own pinned playwright devDependency. The runner already has the libraries
+      # Chromium needs: `--with-deps` adds only fonts for other scripts (Chinese, Japanese, Thai, Cyrillic), 21 MB from
+      # Ubuntu's mirror, which at times serves them so slowly (40 KB/s) that the job runs out of time before a test starts.
+      # So the system libraries are installed only when Chromium will not start without them.
+      - name: Install Chromium for Playwright
+        if: steps.look.outputs.found == 'true'
+        timeout-minutes: 6
+        run: |
+          npx playwright install chromium
+          if node -e "import('playwright').then(({ chromium }) => chromium.launch()).then((browser) => browser.close())"; then
+            echo "Chromium starts with the runner's own libraries."
+          else
+            echo "Chromium needs more system libraries, so they are installed."
+            npx playwright install-deps chromium
+          fi
+
+      - name: Browser UI tests
+        if: steps.look.outputs.found == 'true'
+        run: npm run test:ui
+
+  passed:
+    name: All tests passed
+    needs: [server, ui]
+    # Runs after a failure too, to report it. Not when the run was cancelled for a newer push.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Every test job passed
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Test jobs: $RESULTS"
+          for result in $RESULTS; do
+            if [ "$result" != success ]; then
+              echo "A test job did not pass: it ended as '$result'."
+              exit 1
+            fi
+          done

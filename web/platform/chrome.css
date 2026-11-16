@@ -1,0 +1,429 @@
+/* The app chrome: the shell, the charcoal sidebar, the page header and the brand diamonds behind every page.
+   Loaded by /platform/app.css. shell.js fills the sidebar. The sign-in layout is signin.css. */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--emg-sidebar-width) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar ---------- */
+/* The "no database" banner (dev-banner.js) sits above everything; the sticky sidebar starts below it.
+   dev-banner.js measures the banner and keeps --emg-banner-height right when it wraps. */
+body:has(.dev-banner) { --emg-banner-height: 34px; }
+
+/* The sidebar's colour runs the full height of the page, however long the page is. */
+@media (min-width: 901px) {
+  .app-shell { background: linear-gradient(90deg, var(--emg-nav-bg) var(--emg-sidebar-width), transparent 0); }
+}
+
+.app-nav {
+  --emg-logo-dark: var(--emg-white);
+  position: sticky;
+  top: var(--emg-banner-height, 0px);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--emg-banner-height, 0px));
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, .18) transparent;
+  background: var(--emg-nav-bg);
+  color: var(--emg-nav-ink);
+}
+
+.app-nav__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 1.2rem 1.1rem 1rem;
+}
+
+.app-nav__brand {
+  display: block;
+  padding: 1.2rem 1.1rem 1rem;
+  line-height: 0;
+  border-radius: 0;
+}
+
+.app-nav__top .app-nav__brand { padding: 0; }
+
+.app-nav__brand img { width: 118px; height: auto; }
+
+.app-nav__tools { display: flex; align-items: center; gap: 0.4rem; }
+
+/* The product block: a coral dash, then the app's icon and name. */
+.app-nav__label {
+  position: relative;
+  margin: 0.35rem 1.1rem 0.9rem;
+  padding-top: 0.95rem;
+  color: var(--emg-nav-ink-strong);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.app-nav__label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 2px;
+  background: var(--emg-coral);
+}
+
+.app-nav__label:has(.app-nav__label-icon) {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.app-nav__label-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1.5px solid rgba(255, 255, 255, .28);
+  color: var(--emg-nav-ink-strong);
+}
+
+.app-nav__label-icon .icon { width: 17px; height: 17px; }
+
+.app-nav__sub {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--emg-nav-ink);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+/* "All applications": the way home, at the top of every app's sidebar. */
+.nav-close {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 40px;
+  margin: 0 0.7rem 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--emg-nav-line);
+  color: var(--emg-nav-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+
+.nav-close::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  margin: 0 0.1rem 0 0.15rem;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  flex: none;
+}
+
+.nav-close:hover {
+  background: var(--emg-nav-hover);
+  border-color: rgba(255, 255, 255, .28);
+  color: var(--emg-nav-ink-strong);
+}
+
+.nav-close .nav-link__icon .icon { width: 16px; height: 16px; }
+
+.app-nav__links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.3rem 0.7rem 1rem;
+  border-top: 1px solid var(--emg-nav-line);
+}
+
+.nav-group {
+  display: block;
+  padding: 0.95rem 0.6rem 0.35rem;
+  color: var(--emg-sky-blue);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 40px;
+  padding: 0.4rem 0.65rem;
+  color: var(--emg-nav-ink);
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.nav-link:hover {
+  background: var(--emg-nav-hover);
+  color: var(--emg-nav-ink-strong);
+}
+
+.nav-link[aria-current="page"] {
+  background: var(--emg-nav-active);
+  color: var(--emg-nav-ink-strong);
+  font-weight: 600;
+}
+
+.nav-link[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -0.7rem;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--emg-coral);
+}
+
+.nav-link__icon, .page-icon, .choice__icon {
+  display: grid;
+  place-items: center;
+}
+
+.nav-link .icon { width: 18px; height: 18px; }
+
+.nav-link__badge {
+  margin-left: auto;
+  padding: 0 0.4rem;
+  background: var(--emg-coral);
+  color: var(--emg-white);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+.app-nav__footer {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  gap: 0.6rem;
+  margin-top: auto;
+  padding: 0.9rem 0.9rem 1rem;
+  border-top: 1px solid var(--emg-nav-line);
+  background: var(--emg-nav-bg);
+}
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.nav-user .avatar {
+  width: 34px;
+  height: 34px;
+  font-size: 0.72rem;
+  background: var(--emg-navy);
+}
+
+.nav-user__text { min-width: 0; line-height: 1.3; }
+
+.nav-user__name {
+  display: block;
+  overflow: hidden;
+  color: var(--emg-nav-ink-strong);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-user__email {
+  display: block;
+  overflow: hidden;
+  color: var(--emg-nav-ink);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+button.nav-signout {
+  width: 100%;
+  min-height: 38px;
+  border: 1.5px solid rgba(255, 255, 255, .28);
+  background: transparent;
+  color: var(--emg-nav-ink-strong);
+  font-size: 0.8rem;
+}
+
+button.nav-signout:hover {
+  border-color: rgba(255, 255, 255, .6);
+  background: var(--emg-nav-hover);
+}
+
+/* Square icon buttons: the theme switch and the mobile menu. */
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 1.5px solid var(--emg-line-strong);
+  background: transparent;
+  color: var(--emg-text);
+}
+
+.icon-button:hover { background: var(--emg-raised); border-color: var(--emg-text-faint); }
+
+.icon-button .icon { width: 18px; height: 18px; }
+
+.app-nav .icon-button {
+  border-color: rgba(255, 255, 255, .28);
+  color: var(--emg-nav-ink-strong);
+}
+
+.app-nav .icon-button:hover { background: var(--emg-nav-hover); border-color: rgba(255, 255, 255, .55); }
+
+.nav-menu { display: none; }
+
+/* ---------- Main canvas ---------- */
+.app-main {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 100vh;
+  background: var(--emg-bg);
+}
+
+/* The brand diamonds, drawn behind every page. clip-path keeps them inside the canvas, so they never scroll. */
+.app-main::before, .app-main::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* A large pale diamond running off the top right corner, and a small coral one below it. */
+.app-main::before {
+  width: 640px;
+  height: 470px;
+  background: var(--emg-deco-a);
+  clip-path: polygon(470px -210px, 800px 120px, 470px 450px, 140px 120px);
+}
+
+.app-main::after {
+  top: 372px;
+  right: 268px;
+  width: 124px;
+  height: 124px;
+  background: var(--emg-deco-b);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.canvas {
+  display: grid;
+  align-content: start;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: var(--emg-content-width);
+  margin: 0 auto;
+  padding: 2rem 2.25rem 4rem;
+}
+
+/* Joules, the portal's helper, stands in the bottom corner of an app's pages (assistant.js). While he does, the page ends with
+   room as tall as his corner (his size, his 24px from the bottom and a gap), so whatever is last on it can always be scrolled
+   clear of him, as on the portal's own pages. */
+:root[data-emg-assistant] .canvas { padding-bottom: calc(140px + 24px + 2rem); }
+
+/* ---------- Page header ---------- */
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.15rem;
+  padding: 0.5rem 0 0.75rem;
+}
+
+.page-head h1 { max-width: 26ch; }
+
+.page-head .lede {
+  max-width: 64ch;
+  margin-top: 0.6rem;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* The page's icon in a coral diamond, like the brand page's numbered steps. */
+.page-icon {
+  position: relative;
+  width: 46px;
+  height: 46px;
+  flex: none;
+  margin: 0.35rem 0.4rem 0 0.35rem;
+  color: var(--emg-heading);
+}
+
+.page-icon::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 2px solid var(--emg-accent);
+  background: var(--emg-panel);
+  transform: rotate(45deg);
+}
+
+.page-icon .icon { position: relative; width: 20px; height: 20px; }
+
+/* ---------- Small screens: the sidebar becomes a bar with a menu ---------- */
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 1fr; }
+
+  .app-nav {
+    position: sticky;
+    top: var(--emg-banner-height, 0px);
+    z-index: 50;
+    height: auto;
+    max-height: calc(100vh - var(--emg-banner-height, 0px));
+    overflow: visible;
+  }
+
+  .app-nav__top { padding: 0.65rem 1rem; }
+
+  .app-nav__brand img { width: 104px; }
+
+  .nav-menu { display: grid; }
+
+  /* Closed, only the top bar shows. Open, everything takes its normal place in a scrolling drawer. */
+  .app-nav:not([data-open]) > :not(.app-nav__top):not(.app-nav__brand) { display: none; }
+
+  .app-nav[data-open] {
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
+  }
+
+  .app-nav[data-open] .app-nav__footer { position: static; }
+
+  .app-main::before { transform: scale(.6); transform-origin: top right; }
+
+  .app-main::after { display: none; }
+
+  .canvas { padding: 1.25rem 1rem 3rem; }
+
+  .page-head { gap: 0.85rem; }
+
+  .page-icon { width: 38px; height: 38px; }
+}

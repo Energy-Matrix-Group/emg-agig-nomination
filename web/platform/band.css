@@ -1,0 +1,238 @@
+/* The dark band, and the cards of the apps on the way (the portal's application list).
+   Loaded by /platform/app.css. Inside the band the semantic tokens turn dark, whatever the theme. */
+
+.emg-band {
+  --emg-bg: #2B3340;
+  --emg-panel: #313A48;
+  --emg-text: #EDF2F7;
+  --emg-heading: #FFFFFF;
+  --emg-text-muted: #B7C2D0;
+  --emg-text-faint: #8A97A8;
+  --emg-line: rgba(255, 255, 255, .11);
+  --emg-line-strong: rgba(255, 255, 255, .2);
+  --emg-accent: #EE7F5F;
+  --emg-accent-ink: #F6A487;
+  --emg-logo-dark: #FFFFFF;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  background: var(--emg-bg);
+  color: var(--emg-text);
+}
+
+:root[data-theme="dark"] .emg-band { --emg-bg: #1F252E; --emg-panel: #29313D; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .emg-band { --emg-bg: #1F252E; --emg-panel: #29313D; }
+}
+
+.emg-band::before, .emg-band::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.emg-band::before {
+  width: 520px;
+  height: 520px;
+  right: -180px;
+  top: -320px;
+  background: rgba(255, 255, 255, .035);
+}
+
+.emg-band::after {
+  width: 260px;
+  height: 260px;
+  right: 60px;
+  bottom: -190px;
+  background: rgba(228, 116, 84, .08);
+}
+
+.emg-band__head { max-width: 52rem; margin-bottom: 1.6rem; }
+
+.emg-band__head h2 {
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  line-height: 1.12;
+  letter-spacing: -0.024em;
+}
+
+.emg-band__head .lede { margin-top: 0.6rem; max-width: 60ch; }
+
+.soon-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+  gap: 1.1rem;
+}
+
+.soon-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  overflow: hidden;
+  padding: 1.35rem 1.35rem 1.15rem;
+  background: rgba(255, 255, 255, .035);
+  border: 1.5px solid rgba(255, 255, 255, .16);
+  transition: transform 260ms var(--emg-ease-out), border-color 260ms ease, background-color 260ms ease;
+}
+
+.soon-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(238, 127, 95, .7);
+  background: rgba(255, 255, 255, .06);
+}
+
+/* Energy running along the top edge. */
+.soon-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--emg-coral), var(--emg-sky-blue), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: emg-current 3.6s linear var(--soon-delay, 0s) infinite;
+}
+
+@keyframes emg-current {
+  from { background-position: -100% 0; }
+  to { background-position: 300% 0; }
+}
+
+/* A light that sweeps the card now and then. */
+.soon-card::after {
+  content: "";
+  position: absolute;
+  inset: -40% auto -40% -60%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .07), transparent);
+  transform: rotate(18deg);
+  animation: emg-card-sweep 7s ease-in-out var(--soon-delay, 0s) infinite;
+  pointer-events: none;
+}
+
+@keyframes emg-card-sweep {
+  0%, 70% { left: -60%; }
+  100% { left: 130%; }
+}
+
+.soon-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.soon-card__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: #FFFFFF;
+}
+
+.soon-card__icon::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 2px solid var(--emg-accent);
+  transform: rotate(45deg);
+}
+
+.soon-card__icon .icon { position: relative; width: 20px; height: 20px; }
+
+.soon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--emg-accent-ink);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.soon-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  background: var(--emg-accent);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 0 rgba(238, 127, 95, .6);
+  animation: emg-beacon 1.8s ease-out infinite;
+}
+
+@keyframes emg-beacon {
+  0% { box-shadow: 0 0 0 0 rgba(238, 127, 95, .55); }
+  80%, 100% { box-shadow: 0 0 0 9px rgba(238, 127, 95, 0); }
+}
+
+.soon-card h3 { color: #FFFFFF; font-size: 1.2rem; letter-spacing: -0.015em; }
+
+.soon-card p { color: var(--emg-text-muted); font-size: 0.88rem; line-height: 1.55; }
+
+.soon-card ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.soon-card li {
+  display: flex;
+  gap: 0.6rem;
+  color: var(--emg-text);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.soon-card li::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: none;
+  margin-top: 0.45rem;
+  background: var(--emg-sky-blue);
+  transform: rotate(45deg);
+}
+
+.soon-card__foot {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--emg-line);
+  color: var(--emg-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.soon-meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+
+.soon-meter i { height: 4px; background: rgba(255, 255, 255, .14); }
+
+.soon-meter i.is-done { background: var(--emg-sky-blue); }
+
+.soon-meter i.is-now {
+  background: linear-gradient(90deg, var(--emg-accent), rgba(238, 127, 95, .35));
+  animation: emg-pulse 2.2s ease-in-out infinite;
+}
+
+.soon-card__stage b { color: var(--emg-accent-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .soon-card::before, .soon-card::after, .soon-badge::before, .soon-meter i.is-now { animation: none; }
+
+  .soon-card { transition: none; }
+
+  .soon-card:hover { transform: none; }
+}

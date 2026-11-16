@@ -1,0 +1,207 @@
+/* Motion: the logo loader, the start-up splash, the inline mark (mark.js) and gentle entrances.
+   Loaded by /platform/app.css. Everything here stops for people who ask for less motion. */
+
+/* ---------- The loader: the mark blows apart, snaps back and spins once ----------
+   The animation lives inside the SVG (logo/loader.svg, built by scripts/make-mark.js), so this is just a box
+   that shows it. --emg-loader picks the light or dark drawing for the theme. */
+.emg-loader {
+  display: inline-block;
+  width: var(--emg-loader-size, 96px);
+  height: var(--emg-loader-size, 96px);
+  flex: none;
+  background: var(--emg-loader) center / contain no-repeat;
+}
+
+.emg-loader--xs { --emg-loader-size: 24px; }
+
+.emg-loader--sm { --emg-loader-size: 40px; }
+
+.emg-loader--lg { --emg-loader-size: 150px; }
+
+/* A loading state in a page: the loader and a short line under it. */
+.emg-loading {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.35rem;
+  min-height: 12rem;
+  padding: 2rem 1rem;
+  color: var(--emg-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.emg-loading--inline {
+  display: inline-flex;
+  align-items: center;
+  min-height: 0;
+  padding: 0;
+  gap: 0.6rem;
+  letter-spacing: 0.06em;
+}
+
+.emg-loading--inline .emg-loader { --emg-loader-size: 36px; }
+
+/* ---------- The start-up splash ----------
+   A page puts <div class="emg-boot" data-boot> first in <body>; shell.js lifts it once the chrome is drawn
+   (bootDone() in loader.js). If a page never says so, it lifts by itself after 12 seconds. */
+.emg-boot {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 0.25rem;
+  background: var(--emg-bg);
+  animation: emg-boot-failsafe 1ms linear 12s forwards;
+  transition: opacity 380ms ease, visibility 0s linear 380ms;
+}
+
+.emg-boot .emg-loader {
+  --emg-loader-size: 168px;
+  animation: emg-fade-in 420ms ease 90ms both;
+}
+
+.emg-boot__label {
+  color: var(--emg-text-faint);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  animation: emg-fade-in 420ms ease 260ms both;
+}
+
+.emg-boot.is-done { opacity: 0; visibility: hidden; }
+
+@keyframes emg-boot-failsafe { to { opacity: 0; visibility: hidden; } }
+
+@keyframes emg-fade-in { from { opacity: 0; } }
+
+/* ---------- The inline mark (mark.js) ---------- */
+.emg-mark {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.emg-mark .emg-tile {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.emg-mark__spin, .emg-mark__gather {
+  transform-box: view-box;
+  transform-origin: 150px 150px;
+}
+
+/* Assemble: the tiles fly in from far out and lock into place, as on the brand's guide. */
+.emg-mark--assemble .emg-tile {
+  animation: emg-tile-in 1100ms var(--emg-ease-out) var(--enter, 300ms) both;
+}
+
+@keyframes emg-tile-in {
+  from {
+    opacity: 0;
+    transform: translate(calc(var(--x) * 1.7), calc(var(--y) * 1.7)) rotate(var(--r)) scale(0.5);
+  }
+}
+
+/* A slow light across the finished mark. */
+.emg-mark .emg-shine { animation: emg-shine 8s cubic-bezier(.45, 0, .25, 1) 2.8s infinite; }
+
+@keyframes emg-shine {
+  0% { transform: translateX(0); }
+  28%, 100% { transform: translateX(560px); }
+}
+
+/* Burst on demand (hover, a click, or loader mode): blow apart, snap back, spin once. */
+.emg-mark.is-bursting .emg-tile,
+.emg-mark--loader .emg-tile {
+  animation: emg-burst 3400ms var(--delay, 0ms) both;
+}
+
+.emg-mark.is-bursting .emg-mark__spin,
+.emg-mark--loader .emg-mark__spin {
+  animation: emg-spin 3400ms both;
+}
+
+.emg-mark.is-bursting .emg-mark__gather,
+.emg-mark--loader .emg-mark__gather {
+  animation: emg-gather 3400ms both;
+}
+
+.emg-mark.is-bursting .emg-wave,
+.emg-mark--loader .emg-wave {
+  animation: emg-wave 3400ms both;
+}
+
+.emg-mark--loader .emg-tile,
+.emg-mark--loader .emg-mark__spin,
+.emg-mark--loader .emg-mark__gather,
+.emg-mark--loader .emg-wave { animation-iteration-count: infinite; }
+
+.emg-wave {
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+}
+
+@keyframes emg-burst {
+  0%, 9% { transform: none; animation-timing-function: cubic-bezier(.12, .82, .28, 1); }
+  33% { transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(var(--s)); animation-timing-function: linear; }
+  41% { transform: translate(calc(var(--x) * 1.07), calc(var(--y) * 1.07)) rotate(calc(var(--r) * 1.12)) scale(var(--s)); animation-timing-function: cubic-bezier(.62, 0, .22, 1.18); }
+  62%, 100% { transform: none; }
+}
+
+@keyframes emg-gather {
+  0%, 5% { transform: none; animation-timing-function: cubic-bezier(.4, 0, .6, 1); }
+  9.5% { transform: scale(.9); animation-timing-function: cubic-bezier(.2, .8, .3, 1); }
+  14%, 100% { transform: none; }
+}
+
+@keyframes emg-spin {
+  0%, 63% { transform: none; animation-timing-function: cubic-bezier(.68, 0, .24, 1); }
+  88%, 100% { transform: rotate(360deg); }
+}
+
+@keyframes emg-wave {
+  0%, 9% { opacity: 0; transform: scale(.25); animation-timing-function: cubic-bezier(.1, .7, .3, 1); }
+  12% { opacity: .7; }
+  38%, 100% { opacity: 0; transform: scale(2.1); }
+}
+
+/* ---------- Entrances ---------- */
+.emg-rise { animation: emg-rise 640ms var(--emg-ease-out) var(--rise-delay, 0ms) both; }
+
+@keyframes emg-rise { from { opacity: 0; transform: translateY(14px); } }
+
+@keyframes emg-pulse { 50% { opacity: .35; } }
+
+@keyframes emg-breathe { 50% { opacity: .55; } }
+
+/* ---------- Less motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .emg-loader {
+    background-image: url("/platform/logo/favicon.svg");
+    background-size: 58%;
+    animation: emg-breathe 2.4s ease-in-out infinite;
+  }
+
+  .emg-boot .emg-loader, .emg-boot__label { animation: none; }
+
+  .emg-mark .emg-tile,
+  .emg-mark .emg-mark__spin,
+  .emg-mark .emg-mark__gather,
+  .emg-mark .emg-wave,
+  .emg-mark .emg-shine,
+  .emg-rise { animation: none !important; }
+
+  .emg-mark .emg-shine, .emg-mark .emg-wave { display: none; }
+
+  button, .emg-btn, .choice, a.choice:hover { transition: none; transform: none; }
+}

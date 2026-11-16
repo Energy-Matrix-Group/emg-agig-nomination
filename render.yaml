@@ -1,0 +1,40 @@
+# One public web service. The browser talks to it directly: it serves the UI and the API.
+# Create it in the Render dashboard with New, then Blueprint, and choose the branch to deploy
+# (test for the test environment). docs/SETUP.md in emg-portal lists every value.
+#
+# The settings the services share (the portal's address and public key, the directory token, the SQL login)
+# are in the Render environment group named below, not here. Make the group before you create this service
+# (docs/SETUP.md in emg-portal, section 4.0). Nothing here needs typing.
+services:
+  - type: web
+    name: emg-agig-nomination
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      # The shared settings. A value set in this file beats the group's.
+      - fromGroup: emg-test
+      - key: NODE_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: APP_ID
+        value: agig-nomination
+      # This service's own https address. The platform only checks that it is one.
+      # Change it here if Render gave the service a different address.
+      - key: APP_URL
+        value: https://emg-agig-nomination.onrender.com
+      # Render makes a long random value, which signs this app's session cookie. Different in every service.
+      - key: APP_SESSION_SECRET
+        generateValue: true
+      - key: APP_SESSION_MINUTES
+        value: "30"
+      # This app has no database yet, so it runs on memory. The group holds the SQL login for the live apps, and an app
+      # that sees SQL_SERVER but has no database name of its own would log a database error and show the "no database"
+      # banner. Setting SQL_SERVER empty here keeps it on memory. When the app gets its database, delete this entry
+      # and add AGIG_NOMINATION_SQL_DATABASE to the group.
+      - key: SQL_SERVER
+        value: ""

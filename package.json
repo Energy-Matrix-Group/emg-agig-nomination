@@ -1,0 +1,17 @@
+{
+  "name": "emg-agig-nomination",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "build": "node scripts/build-web.js build",
+    "test": "node --test \"test/**/*.test.js\" && node scripts/build-web.js test",
+    "test:sql": "node --env-file=.env --test \"test/**/*.test.js\""
+  },
+  "dependencies": {
+    "mssql": "^12.7.2"
+  }
+}

@@ -1,0 +1,144 @@
+/* The sign-in page: the brand on a charcoal panel on the left, the form on the right.
+   Loaded by /platform/app.css. The portal's sign-in page uses it. */
+
+.login-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  min-height: 100vh;
+  background: var(--emg-bg);
+}
+
+/* The "no database" banner takes a row of its own across the top. */
+.login-page:has(> .dev-banner) { grid-template-rows: auto 1fr; }
+
+.login-page > .dev-banner { grid-column: 1 / -1; }
+
+.login-hero {
+  --emg-logo-dark: #FFFFFF;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  overflow: hidden;
+  padding: clamp(1.75rem, 4vw, 3.25rem);
+  background: #2B3340;
+  color: #E2E8F0;
+}
+
+.login-hero::before, .login-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  transform: rotate(45deg);
+}
+
+.login-hero::before {
+  width: 620px;
+  height: 620px;
+  right: -260px;
+  top: -300px;
+  background: rgba(157, 192, 215, .07);
+}
+
+.login-hero::after {
+  width: 300px;
+  height: 300px;
+  left: -150px;
+  bottom: -150px;
+  background: rgba(228, 116, 84, .1);
+}
+
+.login-hero__logo { width: 150px; }
+
+.login-hero__art {
+  align-self: center;
+  width: min(100%, 360px);
+  aspect-ratio: 1;
+}
+
+.login-hero__copy { max-width: 30rem; }
+
+.login-hero__copy h2 {
+  color: #FFFFFF;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.028em;
+}
+
+.login-hero__copy h2 .emg-hl { color: #F08A6C; }
+
+.login-hero__copy p {
+  margin-top: 0.85rem;
+  color: #C3CCD8;
+  font-size: 1rem;
+}
+
+.login-panel {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 1.1rem;
+  padding: 4.5rem 1.5rem;
+}
+
+.login-panel > :not(.login-panel__tools) { width: min(100%, 26rem); }
+
+.login-panel h1 { font-size: clamp(1.9rem, 3vw, 2.4rem); }
+
+.login-panel form { gap: 1.1rem; margin-top: 0.5rem; }
+
+.login-panel button[type="submit"] { width: 100%; min-height: 50px; font-size: 0.98rem; }
+
+.login-logo { width: 170px; }
+
+.login-panel .login-logo { display: none; }
+
+.login-foot {
+  margin-top: 0.75rem;
+  color: var(--emg-text-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 900px) {
+  .login-page, .login-page:has(> .dev-banner) { grid-template-columns: 1fr; grid-template-rows: none; }
+
+  /* On a phone the brand stays, smaller, so the form is in view without scrolling. */
+  .login-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 1.1rem 1.25rem 1.25rem;
+  }
+
+  .login-hero__logo { width: 120px; }
+
+  .login-hero__art { grid-row: span 2; width: 112px; }
+
+  .login-hero__copy h2 { font-size: 1.3rem; }
+
+  .login-hero__copy p, .login-hero__copy .emg-eyebrow { display: none; }
+
+  .login-panel { align-content: start; padding: 1.75rem 1.25rem 3rem; }
+}
+
+.login-panel__tools {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+}
+
+.login-panel .lede { margin-top: 0.5rem; }
+
+.login-hero .emg-eyebrow { color: #F6A487; }
+
+.login-hero .emg-eyebrow::after { background: #EE7F5F; }
+
+/* A page with the panel alone, such as the portal's "no access" answer. */
+.login-page--single { grid-template-columns: 1fr; }
+
+.login-page--single .login-logo { display: block; margin-bottom: 0.5rem; }

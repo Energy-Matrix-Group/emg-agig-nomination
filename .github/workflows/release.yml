@@ -1,0 +1,71 @@
+name: Version and patch notes
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+# One release at a time. Each run reads VERSION from the latest main, so quick pushes cannot claim the same number.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: ${{ !contains(github.event.head_commit.message, '[skip version]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Advance the version
+        id: bump
+        env:
+          COMMIT_MESSAGES: ${{ toJSON(github.event.commits.*.message) }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          git fetch origin main
+          git checkout -f -B release origin/main
+          node scripts/bump-version.mjs
+
+      - name: Tag the release
+        env:
+          RELEASE_VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          git config user.name "emg-release"
+          git config user.email "releases@energymatrix.local"
+          git add VERSION
+          git commit -m "Bump version to $RELEASE_VERSION [skip version]"
+          pushed=no
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then pushed=yes; break; fi
+            git pull --rebase origin main
+          done
+          test "$pushed" = yes
+          git tag "v$RELEASE_VERSION"
+          git push origin "v$RELEASE_VERSION"
+
+      # Paused: publishing into Documentation was failing every deploy.
+      - name: Write the patch note
+        if: false
+        env:
+          RELEASE_VERSION: ${{ steps.bump.outputs.version }}
+          RELEASE_REPO: emg-agig-nomination
+          RELEASE_SHA: ${{ github.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          # The address of the emg-documentation service, for example https://emg-documentation.onrender.com.
+          DOCS_API_ORIGIN: ${{ secrets.DOCS_API_ORIGIN }}
+          RELEASE_NOTES_TOKEN: ${{ secrets.RELEASE_NOTES_TOKEN }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ secrets.AZURE_OPENAI_DEPLOYMENT }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+        run: node scripts/publish-patch-notes.mjs
