@@ -37,6 +37,7 @@ async function session({ res, user, app }) {
     mailbox: app.mailbox.configured,
     today: awstToday(app.clock()),
     databaseConnected: app.databaseConnected !== false,
+    openAlerts: (await app.store.listAlerts({ open: true, limit: 500 })).length,
   });
 }
 

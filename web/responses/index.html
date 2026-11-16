@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2B3340">
+  <title>AGIG responses — AGIG Nominations — EMG</title>
+  <link rel="icon" href="/platform/logo/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/platform/app.css">
+  <link rel="stylesheet" href="/nomination.css">
+</head>
+<body data-app="agig-nomination">
+  <div class="emg-boot" data-boot aria-hidden="true">
+    <span class="emg-loader" aria-hidden="true"></span>
+    <span class="emg-boot__label">Energy Matrix</span>
+  </div>
+  <div class="app-shell">
+    <aside class="app-nav">
+      <a class="app-nav__brand" href="/">
+        <img src="/platform/logo/logo-on-dark.svg" width="118" alt="Energy Matrix Group">
+      </a>
+      <p class="app-nav__label"></p>
+      <nav class="app-nav__links" data-nav-links></nav>
+      <div class="app-nav__footer" data-header></div>
+    </aside>
+    <div class="app-main">
+      <main class="canvas">
+        <p class="message" data-message hidden></p>
+        <div class="emg-stack" data-screen>
+          <header class="page-head">
+            <span class="page-icon" data-page-icon></span>
+            <div>
+              <p class="emg-eyebrow">AGIG</p>
+              <h1 data-title>AGIG responses</h1>
+              <p class="lede" data-lede>Every answer from AGIG, matched to the file it is about. Upload one here if the mailbox is not set up, or is down.</p>
+            </div>
+          </header>
+          <div class="emg-stack" data-content>
+            <div class="emg-loading" role="status"><span class="emg-loader" aria-hidden="true"></span><span>Loading</span></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="/platform/dev-banner.js"></script>
+  <script type="module" src="/responses/responses.js"></script>
+</body>
+</html>

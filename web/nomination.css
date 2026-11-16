@@ -1,0 +1,116 @@
+/* AGIG Nominations: what the platform's app.css does not already give. Tokens only, never a hex value, so the
+   light and dark themes both work (docs/STYLE-GUIDE.md). */
+
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mono { font-family: var(--emg-font-mono); font-size: 0.86rem; }
+.muted { color: var(--emg-text-muted); }
+.small { font-size: 0.82rem; }
+.nowrap { white-space: nowrap; }
+
+.env-banner {
+  margin: 0 0 1rem;
+  padding: 0.45rem 0.9rem;
+  border-left: 4px solid var(--emg-feature);
+  background: var(--emg-info-bg);
+  color: var(--emg-info-ink);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.env-banner--prod { border-left-color: var(--emg-bad); background: var(--emg-bad-bg); color: var(--emg-bad); }
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+.toolbar > .spacer { flex: 1 1 auto; }
+.button-small { min-height: 36px; padding: 0.35rem 0.8rem; font-size: 0.82rem; }
+.filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+.filters label { min-width: 11rem; }
+
+/* ---------- The Gas Day board ---------- */
+.days { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1rem; }
+
+.day {
+  --tone: var(--emg-line-strong);
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+  padding: 1rem 1.05rem;
+  background: var(--emg-panel);
+  border: 1.5px solid var(--emg-line-strong);
+  border-left: 6px solid var(--tone);
+}
+
+.day--green { --tone: var(--emg-good); }
+.day--blue { --tone: var(--emg-feature); }
+.day--amber { --tone: var(--emg-warn-line); }
+.day--red { --tone: var(--emg-bad); }
+.day--grey { opacity: 0.75; }
+
+.day__head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.day__date { color: var(--emg-heading); font-size: 1.15rem; font-weight: 700; }
+.day__when { color: var(--emg-text-muted); font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.day dl { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.75rem; margin: 0; font-size: 0.84rem; }
+.day dt { color: var(--emg-text-muted); }
+.day dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.day .emg-badge { justify-self: start; max-width: 100%; white-space: normal; }
+.emg-kpi__value--text { font-size: 1.15rem; letter-spacing: -0.01em; }
+.day dd.passed { color: var(--emg-text-faint); }
+.day a { font-size: 0.84rem; }
+
+/* ---------- The nomination grid ---------- */
+.grid-table td { padding: 0.35rem 0.5rem; vertical-align: top; }
+.grid-table th { padding: 0.6rem 0.5rem; }
+.grid-table input, .grid-table select { min-height: 36px; margin: 0; padding: 0.3rem 0.45rem; font-size: 0.86rem; }
+.grid-table td.qty input { width: 6.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.grid-table td.day input { width: 9rem; }
+.grid-table td select { min-width: 9.5rem; }
+.grid-table td:nth-child(4) select { min-width: 12.5rem; }
+.grid-table .remove { min-width: 36px; padding: 0.3rem; }
+.grid-table td.derived { color: var(--emg-text-muted); font-size: 0.78rem; padding-top: 0.45rem; white-space: nowrap; }
+.grid-table td.derived .location { display: block; color: var(--emg-text-faint); }
+.grid-table td.note input { width: 6.5rem; }
+.grid-table td.check { min-width: 13rem; max-width: 24rem; font-size: 0.8rem; padding-top: 0.6rem; }
+.grid-table tr.has-error td:first-child { box-shadow: inset 4px 0 0 var(--emg-bad); }
+.grid-table tr.has-warning td:first-child { box-shadow: inset 4px 0 0 var(--emg-warn-line); }
+.grid-table tr.in-total td { background: var(--emg-bad-bg); }
+
+.check-ok { color: var(--emg-good); font-weight: 600; }
+.check-error { color: var(--emg-bad); font-weight: 600; }
+.check-warning { color: var(--emg-warn); font-weight: 600; }
+
+.summary { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+.issues { margin: 0; padding-left: 1.2rem; font-size: 0.88rem; }
+.issues li { margin: 0.2rem 0; }
+
+dialog {
+  max-width: min(46rem, calc(100vw - 2rem));
+  width: 100%;
+  padding: 1.25rem;
+  border: 1.5px solid var(--emg-line-strong);
+  background: var(--emg-panel);
+  color: var(--emg-text);
+  box-shadow: var(--emg-shadow);
+}
+
+dialog::backdrop { background: color-mix(in srgb, var(--emg-charcoal) 55%, transparent); }
+dialog h2 { margin-top: 0; }
+dialog textarea { min-height: 14rem; font-family: var(--emg-font-mono); font-size: 0.8rem; }
+
+/* ---------- A batch ---------- */
+.timeline { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.timeline li { padding: 0.6rem 0.75rem; border: 1.5px solid var(--emg-line); background: var(--emg-panel); }
+.timeline li.done { border-color: var(--emg-good); }
+.timeline strong { display: block; color: var(--emg-heading); font-size: 0.82rem; }
+.timeline span { display: block; color: var(--emg-text-muted); font-size: 0.78rem; overflow-wrap: anywhere; }
+.batch-rows td:last-child { min-width: 15rem; }
+.error-list { margin: 0.25rem 0 0; padding: 0; list-style: none; color: var(--emg-bad); font-size: 0.8rem; font-weight: 600; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0.75rem 1.5rem; margin: 0; }
+.facts dt { color: var(--emg-text-muted); font-size: 0.78rem; font-weight: 600; }
+.facts dd { margin: 0.15rem 0 0; overflow-wrap: anywhere; }
+
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 1rem; align-items: end; }
+.form-grid .wide { grid-column: 1 / -1; }
+.inline-check { display: flex; gap: 0.5rem; align-items: center; color: var(--emg-text); font-size: 0.9rem; }
+
+/* A wide table scrolls inside its own box instead of widening the page: the stacks are grids, whose items
+   would otherwise grow to fit their content. */
+[data-content], [data-content] > *, .panel > * { min-width: 0; }

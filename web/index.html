@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2B3340">
-  <title>AGIG Nominations — EMG</title>
+  <title>Gas Day board — AGIG Nominations — EMG</title>
   <link rel="icon" href="/platform/logo/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/platform/app.css">
+  <link rel="stylesheet" href="/nomination.css">
 </head>
 <body data-app="agig-nomination">
   <div class="emg-boot" data-boot aria-hidden="true">
@@ -25,24 +26,23 @@
     <div class="app-main">
       <main class="canvas">
         <p class="message" data-message hidden></p>
-        <div class="emg-stack" data-screen hidden>
+        <div class="emg-stack" data-screen>
           <header class="page-head">
             <span class="page-icon" data-page-icon></span>
             <div>
-              <p class="emg-eyebrow">Example app</p>
-              <h1 data-title></h1>
-              <p class="lede" data-description></p>
+              <p class="emg-eyebrow">Nominations</p>
+              <h1 data-title>Is every Gas Day covered?</h1>
+              <p class="lede" data-lede>Each Gas Day from yesterday to a week ahead, against the cutoffs: 14:00 AWST the day before, and 20:00 AWST on the day.</p>
             </div>
           </header>
-          <section class="panel">
-            <h2 class="section-label">Greeting</h2>
-            <p data-hello></p>
-          </section>
+          <div class="emg-stack" data-content>
+            <div class="emg-loading" role="status"><span class="emg-loader" aria-hidden="true"></span><span>Loading</span></div>
+          </div>
         </div>
       </main>
     </div>
   </div>
   <script type="module" src="/platform/dev-banner.js"></script>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="/board.js"></script>
 </body>
 </html>
