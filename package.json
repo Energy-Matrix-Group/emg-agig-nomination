@@ -7,6 +7,7 @@
   },
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
+    "demo": "node scripts/demo.js",
     "build": "node scripts/build-web.js build",
     "test": "node --test \"test/**/*.test.js\" && node scripts/build-web.js test",
     "test:sql": "node --env-file=.env --test \"test/**/*.test.js\""

@@ -13,6 +13,15 @@ One web service, a component of the DigitalOcean App Platform app, serving this 
 
 Made from `emg-app-template` 1.6.5. `server/platform/`, `web/platform/` and `test/platform/` are copied from it and are never edited here.
 
+## Have a look
+
+```powershell
+npm install
+npm run demo
+```
+
+Then open http://localhost:4001. It starts a stand-in for the portal on port 4000 that signs you in at once (as an Ops Trader), and the app on port 4001 on its memory store, with sample nominations for the next few Gas Days. Nothing to set up and nothing sent anywhere; Ctrl+C stops it and forgets everything. `npm run demo -- --empty` starts with no sample data, and `npm run demo -- --viewer` signs you in as someone who may look but not change anything.
+
 ## Run it
 
 ```powershell
