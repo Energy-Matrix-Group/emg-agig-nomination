@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { gasDay, relative, took, when } from '../../web/format.js';
+import { gasDay, nextCutoff, relative, took, when } from '../../web/format.js';
 
 // Every date the pages show is yyyy-mm-dd hh:mm:ss in Perth time, and a Gas Day yyyy-mm-dd.
 
@@ -21,4 +21,12 @@ test('countdowns and durations', () => {
   assert.equal(took('2026-11-16T01:00:00Z', '2026-11-16T01:06:00Z'), '6 min');
   assert.equal(took('2026-11-16T01:00:00Z', '2026-11-16T02:12:00Z'), '1 h 12 min');
   assert.equal(took('2026-11-16T01:00:00Z', null), '');
+});
+
+test('the next cutoff is the initial one, then renominations, then none', () => {
+  const initial = '2026-11-16T06:00:00.000Z';
+  const renomination = '2026-11-17T12:00:00.000Z';
+  assert.deepEqual(nextCutoff(initial, renomination, Date.parse('2026-11-16T02:00:00Z')), { kind: 'Initial', at: initial, text: 'in 4 h 0 min' });
+  assert.deepEqual(nextCutoff(initial, renomination, Date.parse('2026-11-16T06:00:00Z')), { kind: 'Renomination', at: renomination, text: 'in 30 h 0 min' }, 'at 14:00 itself the initial cutoff has gone');
+  assert.deepEqual(nextCutoff(initial, renomination, Date.parse('2026-11-17T12:00:00Z')), { kind: null, at: null, text: 'Closed' });
 });

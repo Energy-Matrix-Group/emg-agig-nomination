@@ -17,6 +17,7 @@ test('nine days, each with both cutoffs, grey where no contract is active', asyn
   await withApp(async ({ ops, store }) => {
     const board = (await ops.call('/board')).data;
     assert.deepEqual([board.days.length, board.days[0].gasDay, board.days.at(-1).gasDay], [9, '2026-11-15', '2026-11-23']);
+    assert.equal(board.cutoffWarningMinutes, 60, 'the page marks a cutoff closer than this');
     assert.ok(board.days.every((item) => item.colour === 'grey'), 'no contracts yet');
     await addContracts(store);
     const tomorrow = await day(ops, TOMORROW);

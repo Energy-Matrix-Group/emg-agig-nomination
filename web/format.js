@@ -32,3 +32,11 @@ export function took(from, to) {
   const minutes = Math.round((new Date(to) - new Date(from)) / 60_000);
   return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 }
+
+// The cutoff that matters next for a Gas Day: the initial one (14:00 AWST the day before) until it passes, then
+// renominations (20:00 AWST on the day), then none: { kind, at, text }, with kind null once both have passed.
+export function nextCutoff(initialIso, renominationIso, now = Date.now()) {
+  if (new Date(initialIso).getTime() > now) return { kind: 'Initial', at: initialIso, text: relative(initialIso, now) };
+  if (new Date(renominationIso).getTime() > now) return { kind: 'Renomination', at: renominationIso, text: relative(renominationIso, now) };
+  return { kind: null, at: null, text: 'Closed' };
+}

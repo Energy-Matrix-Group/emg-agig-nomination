@@ -107,7 +107,7 @@ function environmentBanner(session) {
 }
 
 // Dates and times: yyyy-mm-dd hh:mm:ss in Perth time (AWST), a Gas Day as yyyy-mm-dd (format.js).
-export { gasDay, relative, took, when } from '/format.js';
+export { gasDay, nextCutoff, relative, took, when } from '/format.js';
 
 export const STATUS_TONE = {
   VALIDATED: 'warn', APPROVED: 'warn', BUILT: 'warn', UPLOADING: 'info', UPLOADED: 'info', UPLOAD_UNCERTAIN: 'bad',

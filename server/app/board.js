@@ -122,5 +122,5 @@ export async function gasDayBoard(app) {
       held: { lines: held.length, ...totals(held) },
     });
   }
-  return { today, now: now.toISOString(), environment, days };
+  return { today, now: now.toISOString(), environment, cutoffWarningMinutes, days };
 }
