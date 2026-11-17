@@ -1,4 +1,4 @@
-import { api, API, badge, button, dayLabel, el, fill, linkRow, short, showMessage, startPage, statusBadge, table } from '/shared.js';
+import { api, API, badge, button, el, fill, gasDay, linkRow, showMessage, startPage, statusBadge, table, took, when } from '/shared.js';
 
 // Submissions: every batch the worker loaded, newest first, with its lines, totals, what the checks found, AGIG's
 // errors and where its file got to. A row opens the batch and its lines.
@@ -10,37 +10,40 @@ const query = new URLSearchParams(window.location.search);
 const state = { view: query.get('view') ?? '', gasDay: query.get('gasDay') ?? '', status: query.get('status') ?? '' };
 const results = el('div');
 const views = el('div', { class: 'segmented', role: 'group', 'aria-label': 'Show' });
-const gasDay = el('input', { type: 'date', value: state.gasDay, onchange: (event) => { state.gasDay = event.target.value; load(); } });
+const dayInput = el('input', { type: 'text', inputmode: 'numeric', placeholder: 'yyyy-mm-dd', maxlength: '10', value: state.gasDay, 'aria-label': 'Gas Day, yyyy-mm-dd', onchange: (event) => {
+  const value = event.target.value.trim();
+  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    showMessage('Type the Gas Day as yyyy-mm-dd, for example 2026-11-17.');
+    return;
+  }
+  showMessage('');
+  state.gasDay = value;
+  load();
+} });
 const status = el('select', { onchange: (event) => { state.status = event.target.value; load(); } },
   STATUSES.map((value) => el('option', { value, selected: value === state.status }, value ? value.replaceAll('_', ' ').toLowerCase() : 'Any status')));
 
 const page = await startPage('batches');
 if (page) {
   fill(content,
-    el('div', { class: 'filters' }, views, el('label', {}, 'Gas Day', gasDay), el('label', {}, 'Status', status),
-      button('Clear', () => { Object.assign(state, { view: '', gasDay: '', status: '' }); gasDay.value = ''; status.value = ''; load(); }, { quiet: true, small: true })),
+    el('div', { class: 'filters' }, views, el('label', {}, 'Gas Day', dayInput), el('label', {}, 'Status', status),
+      button('Clear', () => { Object.assign(state, { view: '', gasDay: '', status: '' }); dayInput.value = ''; status.value = ''; load(); }, { quiet: true, small: true })),
     results,
   );
   await load();
 }
 
-function took(from, to) {
-  if (!from || !to) return '';
-  const minutes = Math.round((new Date(to) - new Date(from)) / 60_000);
-  return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+// What the worker's checks found and AGIG's error lines, side by side in one cell.
+function problems(batch) {
+  const parts = [];
+  if (batch.issueErrors) parts.push(badge(`${batch.issueErrors} error${batch.issueErrors === 1 ? '' : 's'}`, 'bad'));
+  if (batch.issueWarnings) parts.push(badge(`${batch.issueWarnings} warning${batch.issueWarnings === 1 ? '' : 's'}`, 'warn'));
+  if (batch.agigErrors) parts.push(badge(`AGIG ${batch.agigErrors}`, 'bad'));
+  return parts.length ? parts.flatMap((part, at) => (at ? [' ', part] : [part])) : el('span', { class: 'muted' }, '—');
 }
 
-// Where the file got to: sent when, answered when, and how long AGIG took.
-function withAgig(file) {
-  if (!file) return el('span', { class: 'muted' }, 'No file');
-  if (!file.uploadedAt) return el('span', { class: 'muted' }, 'Not sent');
-  return [`Sent ${short(file.uploadedAt)}`, el('br'), file.respondedAt
-    ? el('span', { class: 'muted' }, `Answered in ${took(file.uploadedAt, file.respondedAt)}`)
-    : el('span', { class: 'muted' }, 'No answer yet')];
-}
-
-function count(number, tone, word) {
-  return number ? badge(`${number} ${word}`, tone) : '';
+function dash(text) {
+  return text || el('span', { class: 'muted' }, '—');
 }
 
 async function load() {
@@ -57,19 +60,21 @@ async function load() {
   }
   const { batches } = result.data;
   fill(results,
-    el('p', { class: 'muted small' }, `${batches.length} batch${batches.length === 1 ? '' : 'es'}${state.gasDay ? ` covering ${dayLabel(state.gasDay)}` : ''}.`),
+    el('p', { class: 'muted small' }, `${batches.length} batch${batches.length === 1 ? '' : 'es'}${state.gasDay ? ` covering ${gasDay(state.gasDay)}` : ''}.`),
     table(
-      ['Batch', 'Gas Days', 'Status', { label: 'Lines', numeric: true }, { label: 'TJ out', numeric: true }, 'Checks', 'AGIG', 'Loaded', 'With AGIG'],
+      ['Batch', 'Gas Day', 'Status', { label: 'Lines', numeric: true }, { label: 'TJ out', numeric: true }, 'Problems', 'Loaded', 'By', 'Sent', 'Answered', { label: 'Took', numeric: true }],
       batches.map((batch) => linkRow(`/batch/?id=${batch.id}`, [
         el('td', {}, el('a', { href: `/batch/?id=${batch.id}` }, String(batch.id))),
-        el('td', { class: 'nowrap' }, batch.gasDayFrom === batch.gasDayTo ? dayLabel(batch.gasDayFrom) : `${dayLabel(batch.gasDayFrom)} – ${dayLabel(batch.gasDayTo)}`),
+        el('td', {}, batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`),
         el('td', {}, statusBadge(batch)),
         el('td', { class: 'num' }, String(batch.lines)),
         el('td', { class: 'num' }, batch.outletTJ),
-        el('td', { class: 'nowrap' }, count(batch.issueErrors, 'bad', batch.issueErrors === 1 ? 'error' : 'errors'), ' ', count(batch.issueWarnings, 'warn', batch.issueWarnings === 1 ? 'warning' : 'warnings'), batch.issueErrors || batch.issueWarnings ? '' : el('span', { class: 'muted' }, 'Clean')),
-        el('td', { class: 'nowrap' }, batch.agigErrors ? badge(`${batch.agigErrors} error${batch.agigErrors === 1 ? '' : 's'}`, 'bad') : batch.status === 'ACCEPTED' ? badge('Accepted', 'good') : ''),
-        el('td', { class: 'small nowrap' }, short(batch.createdAt), el('br'), el('span', { class: 'muted' }, String(batch.createdBy).split('@')[0])),
-        el('td', { class: 'small nowrap', title: batch.file?.fileName ?? '' }, withAgig(batch.file)),
+        el('td', {}, problems(batch)),
+        el('td', { class: 'num' }, when(batch.createdAt)),
+        el('td', { title: batch.createdBy }, String(batch.createdBy).split('@')[0]),
+        el('td', { class: 'num', title: batch.file?.fileName ?? '' }, dash(when(batch.file?.uploadedAt))),
+        el('td', { class: 'num' }, dash(when(batch.file?.respondedAt))),
+        el('td', { class: 'num' }, dash(took(batch.file?.uploadedAt, batch.file?.respondedAt))),
       ], { class: `batch-row batch-row--${batch.status.toLowerCase()}` })),
       { empty: 'No batches match.', className: 'batch-list' },
     ),

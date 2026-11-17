@@ -1,4 +1,4 @@
-import { api, API, badge, dayLabel, el, fill, linkRow, relative, showMessage, startPage, table, timeOnly, when } from '/shared.js';
+import { api, API, badge, el, fill, gasDay, linkRow, relative, showMessage, startPage, table, when } from '/shared.js';
 
 // The Gas Day board: the open alerts across the top, then one row per Gas Day from yesterday to a week ahead,
 // coloured as the design set out, with a countdown to each cutoff. It asks again every minute, and the countdowns
@@ -56,7 +56,7 @@ function row(day) {
   const href = `/batches/?gasDay=${day.gasDay}`;
   const tag = { '-1': 'Yesterday', 0: 'Today', 1: 'Tomorrow' }[day.offset] ?? `D+${day.offset}`;
   return linkRow(href, [
-    el('td', { class: 'nowrap' }, el('a', { href, class: 'day-link' }, dayLabel(day.gasDay)), el('br'), el('span', { class: 'day-tag' }, tag)),
+    el('td', { class: 'nowrap' }, el('a', { href, class: 'day-link' }, gasDay(day.gasDay)), el('br'), el('span', { class: 'day-tag' }, tag)),
     el('td', {}, badge(day.label, COLOUR_TONE[day.colour])),
     cutoffCell(day.initialCutoff),
     cutoffCell(day.renominationCutoff),
@@ -67,7 +67,7 @@ function row(day) {
 }
 
 function cutoffCell(iso) {
-  return el('td', { class: 'nowrap' }, el('span', {}, `${timeOnly(iso)} ${dayLabel(new Date(new Date(iso).getTime() + 8 * 3600_000).toISOString().slice(0, 10))}`), el('br'), el('span', { class: 'countdown small', dataset: { countdown: iso } }));
+  return el('td', { class: 'nowrap' }, el('span', {}, when(iso)), el('br'), el('span', { class: 'countdown small', dataset: { countdown: iso } }));
 }
 
 function tick() {

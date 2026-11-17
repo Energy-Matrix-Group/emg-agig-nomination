@@ -106,26 +106,8 @@ function environmentBanner(session) {
   canvas.prepend(banner);
 }
 
-// Times: the app shows Perth time (AWST, UTC+8 all year), and says so.
-const perth = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-const perthTime = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' });
-const shortFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-
-export const when = (iso) => (iso ? perth.format(new Date(iso)) : '');
-export const timeOnly = (iso) => (iso ? perthTime.format(new Date(iso)) : '');
-// "17 Nov 08:39": for table cells, where a whole date and time would not fit.
-export const short = (iso) => (iso ? shortFormat.format(new Date(iso)).replace(',', '') : '');
-export const dayLabel = (day) => (day ? dayFormat.format(new Date(`${day}T12:00:00Z`)) : '');
-
-// "in 3 h 59 min", "12 min ago"
-export function relative(iso, now = Date.now()) {
-  if (!iso) return '';
-  const minutes = Math.round((new Date(iso).getTime() - now) / 60_000);
-  const size = Math.abs(minutes);
-  const words = size < 60 ? `${size} min` : size < 48 * 60 ? `${Math.floor(size / 60)} h ${size % 60} min` : `${Math.round(size / 1440)} days`;
-  return minutes >= 0 ? `in ${words}` : `${words} ago`;
-}
+// Dates and times: yyyy-mm-dd hh:mm:ss in Perth time (AWST), a Gas Day as yyyy-mm-dd (format.js).
+export { gasDay, relative, took, when } from '/format.js';
 
 export const STATUS_TONE = {
   VALIDATED: 'warn', APPROVED: 'warn', BUILT: 'warn', UPLOADING: 'info', UPLOADED: 'info', UPLOAD_UNCERTAIN: 'bad',

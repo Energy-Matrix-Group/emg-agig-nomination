@@ -76,7 +76,15 @@ p.alerts-banner { margin: 0; }
 
 /* ---------- Submissions ---------- */
 .batch-list td:first-child { box-shadow: inset 4px 0 0 var(--tone, transparent); }
-.batch-list .emg-badge { white-space: normal; max-width: 11rem; }
+/* One line per batch, however many columns: the table scrolls sideways rather than wrap a record. */
+.batch-list th, .batch-list td { white-space: nowrap; padding: 0.55rem 0.5rem; }
+.batch-list th { letter-spacing: 0.04em; }
+.batch-list td { font-size: 0.8rem; }
+.batch-list td:first-child { padding-left: 1rem; }
+/* The batch number stays in view while the rest scrolls sideways. */
+.batch-list th:first-child, .batch-list td:first-child { position: sticky; left: 0; z-index: 1; background: var(--emg-panel); }
+.batch-list th:first-child { background: var(--emg-raised); }
+.batch-list .link-row:hover td:first-child { background: var(--emg-raised); }
 .batch-row--accepted { --tone: var(--emg-good); }
 .batch-row--uploaded, .batch-row--uploading { --tone: var(--emg-feature); }
 .batch-row--rejected, .batch-row--validation_failed, .batch-row--no_response, .batch-row--upload_uncertain { --tone: var(--emg-bad); }

@@ -1,4 +1,4 @@
-import { badge, dayLabel, el, fill, panel, showMessage, startPage, statusBadge, table, when, api, API } from '/shared.js';
+import { api, API, badge, el, fill, gasDay, panel, showMessage, startPage, statusBadge, table, when } from '/shared.js';
 
 // One batch, its lines first: each line as it went to AGIG, with what the worker's checks found and AGIG's errors
 // pinned to it. Then the totals for each Gas Day, the timeline, how it changes what AGIG held (the design's
@@ -46,7 +46,7 @@ async function draw() {
   const { batch } = detail;
   document.title = `Batch ${batch.id} — AGIG Nominations — EMG`;
   document.querySelector('[data-title]').textContent = `Batch ${batch.id}`;
-  document.querySelector('[data-lede]').replaceChildren(statusBadge(batch), ` ${batch.gasDayFrom === batch.gasDayTo ? dayLabel(batch.gasDayFrom) : `${dayLabel(batch.gasDayFrom)} to ${dayLabel(batch.gasDayTo)}`} · ${detail.rows.length} lines · ${batch.environment}`);
+  document.querySelector('[data-lede]').replaceChildren(statusBadge(batch), ` ${batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`} · ${detail.rows.length} lines · ${batch.environment}`);
   const [tone, words] = WHERE_IT_IS[batch.status] ?? ['note', ''];
   const problems = detail.rows.filter((row) => row.issues.length || row.agigErrors.length).length;
 
@@ -62,7 +62,7 @@ async function draw() {
       el('div', { dataset: { rows: '' } })),
     detail.days.length > 1 || detail.issues.length || detail.unpinnedErrors.length ? panel('Totals and the batch as a whole',
       table(['Gas Day', { label: 'Lines', numeric: true }, { label: 'TJ in', numeric: true }, { label: 'TJ out', numeric: true }],
-        detail.days.map((day) => el('tr', {}, el('td', {}, dayLabel(day.gasDay)), el('td', { class: 'num' }, String(day.lines)), el('td', { class: 'num' }, day.inletTJ), el('td', { class: 'num' }, day.outletTJ)))),
+        detail.days.map((day) => el('tr', {}, el('td', {}, gasDay(day.gasDay)), el('td', { class: 'num' }, String(day.lines)), el('td', { class: 'num' }, day.inletTJ), el('td', { class: 'num' }, day.outletTJ)))),
       detail.issues.length ? el('ul', { class: 'issues' }, detail.issues.map((issue) => el('li', { class: issue.severity === 'Error' ? 'check-error' : 'check-warning' }, `${issue.rule}: ${issue.message}`))) : null,
       detail.unpinnedErrors.length ? el('ul', { class: 'issues' }, detail.unpinnedErrors.map((error) => el('li', { class: 'check-error' }, `AGIG, line ${error.lineNumber}: ${error.errorCode} ${error.meaning ?? error.errorDescription ?? ''}`))) : null) : null,
     panel('What happened', el('ol', { class: 'timeline' }, detail.timeline.map((step) => el('li', { class: step.at ? 'done' : null },
@@ -92,7 +92,7 @@ function drawRows() {
     ['Line', ...(manyDays ? ['Gas Day'] : []), 'Contract', 'Nom Type', 'Service', 'Designation', 'Location', { label: 'TJ', numeric: true }, 'Problems'],
     rows.map((row) => el('tr', { class: row.agigErrors.length || row.issues.some((issue) => issue.severity === 'Error') ? 'has-error' : row.issues.length ? 'has-warning' : null },
       el('td', { class: 'muted' }, String(row.csvLineNumber)),
-      manyDays ? el('td', { class: 'nowrap' }, dayLabel(row.gasDay)) : null,
+      manyDays ? el('td', { class: 'nowrap' }, gasDay(row.gasDay)) : null,
       el('td', {}, row.contract),
       el('td', {}, row.nomType),
       el('td', {}, row.serviceType ?? ''),
@@ -111,7 +111,7 @@ function changesTable(changes) {
   return table(
     ['Gas Day', 'Contract', 'Nom Type', 'Designation', { label: 'AGIG held', numeric: true }, { label: 'This batch', numeric: true }, { label: 'Change', numeric: true }],
     changes.map((change) => el('tr', {},
-      el('td', {}, dayLabel(change.gasDay)), el('td', {}, change.contract), el('td', {}, change.nomType), el('td', { class: 'mono' }, change.designation),
+      el('td', {}, gasDay(change.gasDay)), el('td', {}, change.contract), el('td', {}, change.nomType), el('td', { class: 'mono' }, change.designation),
       el('td', { class: 'num' }, change.before ?? '—'), el('td', { class: 'num' }, change.after ?? 'removed'),
       el('td', { class: 'num' }, change.change.startsWith('-') ? change.change : `+${change.change}`))),
   );

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
@@ -32,6 +33,14 @@ test('pages put what the API sends on the page as text, never as markup', async 
   for (const file of (await pageFiles()).filter((name) => name.endsWith('.js'))) {
     const source = withoutComments(await readFile(file, 'utf8'));
     assert.doesNotMatch(source, /\.(innerHTML|outerHTML)\s*=|insertAdjacentHTML|document\.write|\beval\(|new Function\(/, path.relative(web, file));
+  }
+});
+
+// A script that does not parse (a name declared twice, say) stops the whole page, and no server test would see it.
+test('every page script parses as a module', async () => {
+  for (const file of (await pageFiles()).filter((name) => name.endsWith('.js'))) {
+    const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+    assert.equal(result.status, 0, `${path.relative(web, file)}: ${result.stderr.split('\n').find((line) => /Error/.test(line)) ?? result.stderr}`);
   }
 });
 
