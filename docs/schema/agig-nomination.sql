@@ -1,7 +1,7 @@
 -- AGIG Nominations: the tables, indexes and views the app makes at boot (server/app/store/schema.js).
 -- Written by `node scripts/write-schema-script.js`; do not edit by hand. test/schema.test.js checks it.
 --
--- It is the design's SQL setup script (sections 1 to 4 and 6) with two tables added since: nom.SpotAward and ops.AuditLog.
+-- It is the design's SQL setup script (sections 1 to 4 and 6): its twelve tables and two views.
 -- Every statement is guarded, so it is safe to run on a database the setup script already built: it makes
 -- only what is missing and never alters or drops anything. The spec's reference data (pipelines, the SHNOM
 -- template, the 82 points and the 28 error codes) is seeded by the app into tables that are empty.
@@ -196,18 +196,6 @@ IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_ResponseError_Response
 CREATE INDEX IX_ResponseError_Response ON nom.ResponseError (ResponseId);
 GO
 
-IF OBJECT_ID('nom.SpotAward', 'U') IS NULL
-CREATE TABLE nom.SpotAward (
-    SpotAwardId int IDENTITY(1,1) PRIMARY KEY,
-    GasDay date NOT NULL,
-    ContractCode varchar(60) NOT NULL,
-    AwardedTJ decimal(12,3) NOT NULL CHECK (AwardedTJ >= 0),
-    EnteredBy nvarchar(100) NOT NULL,
-    EnteredAtUtc datetime2(0) NOT NULL DEFAULT sysutcdatetime(),
-    CONSTRAINT UQ_SpotAward UNIQUE (GasDay, ContractCode)
-);
-GO
-
 IF OBJECT_ID('ops.Alert', 'U') IS NULL
 CREATE TABLE ops.Alert (
     AlertId int IDENTITY(1,1) PRIMARY KEY,
@@ -225,22 +213,6 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Alert_Open' AND object_id = OBJECT_ID('ops.Alert'))
 CREATE INDEX IX_Alert_Open ON ops.Alert (ClearedAtUtc, Severity);
-GO
-
-IF OBJECT_ID('ops.AuditLog', 'U') IS NULL
-CREATE TABLE ops.AuditLog (
-    AuditLogId int IDENTITY(1,1) PRIMARY KEY,
-    Action varchar(40) NOT NULL,
-    EntityType varchar(20) NOT NULL,
-    EntityId int NULL,
-    Detail nvarchar(1000) NULL,
-    ActorEmail nvarchar(200) NOT NULL,
-    AtUtc datetime2(0) NOT NULL DEFAULT sysutcdatetime()
-);
-GO
-
-IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_AuditLog_Entity' AND object_id = OBJECT_ID('ops.AuditLog'))
-CREATE INDEX IX_AuditLog_Entity ON ops.AuditLog (EntityType, EntityId);
 GO
 
 IF OBJECT_ID('nom.vAcceptedNomination', 'V') IS NULL

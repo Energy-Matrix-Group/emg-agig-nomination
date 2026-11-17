@@ -3,7 +3,6 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { totalsByContractDay } from '../../web/nominate/totals.js';
 
 // The pages' own rules, checked in their source (the pages run in a browser, so these are read, not run).
 
@@ -21,6 +20,13 @@ async function pageFiles(folder = web) {
 }
 
 const withoutComments = (source) => source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+test('there is no page for making or changing a nomination: the app only watches', async () => {
+  const sources = (await Promise.all((await pageFiles()).filter((name) => name.endsWith('.js')).map((name) => readFile(name, 'utf8')))).join('\n');
+  assert.doesNotMatch(sources, /method: '(PUT|DELETE|PATCH)'/);
+  const posts = [...sources.matchAll(/api\(`([^`]+)`, \{ method: 'POST'/g)].map(([, path]) => path);
+  assert.deepEqual(posts, ['${API}/alerts/${alert.id}/${action}'], 'the one change a page makes is to an alert');
+});
 
 test('pages put what the API sends on the page as text, never as markup', async () => {
   for (const file of (await pageFiles()).filter((name) => name.endsWith('.js'))) {
@@ -43,7 +49,7 @@ test('a page script declares everything before its first top-level await', async
 
 test('every page is in the app shell, names the app, and loads its own script', async () => {
   const pages = (await pageFiles()).filter((name) => name.endsWith('index.html'));
-  assert.equal(pages.length, 8);
+  assert.equal(pages.length, 6);
   for (const file of pages) {
     const html = await readFile(file, 'utf8');
     const where = path.relative(web, file);
@@ -59,18 +65,4 @@ test('every page is in the app shell, names the app, and loads its own script', 
 test('the stylesheet uses the platform\'s tokens, never a colour of its own', async () => {
   const css = withoutComments(await readFile(path.join(web, 'nomination.css'), 'utf8'));
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i);
-});
-
-test('the totals table adds in thousandths, so nothing drifts', () => {
-  const rows = [
-    { gasDay: '2026-11-17', contract: 'Shipper1_FH01', nomType: 'Inlet', quantityTJ: '0.100' },
-    { gasDay: '2026-11-17', contract: 'Shipper1_FH01', nomType: 'Inlet', quantityTJ: '0.200' },
-    { gasDay: '2026-11-17', contract: 'Shipper1_FH01', nomType: 'Outlet', quantityTJ: '0.300' },
-    { gasDay: '2026-11-17', contract: 'Shipper1_FH01', nomType: 'Outlet', quantityTJ: null },
-    { gasDay: '2026-11-16', contract: 'Shipper1_SPOT', nomType: 'Outlet', quantityTJ: '2.5' },
-  ];
-  assert.deepEqual(totalsByContractDay(rows, [{ code: 'Shipper1_FH01', capacityTJ: '25.000' }]), [
-    { gasDay: '2026-11-16', contract: 'Shipper1_SPOT', inletTJ: '0.000', outletTJ: '2.500', capacityTJ: null },
-    { gasDay: '2026-11-17', contract: 'Shipper1_FH01', inletTJ: '0.300', outletTJ: '0.300', capacityTJ: '25.000' },
-  ]);
 });

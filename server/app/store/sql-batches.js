@@ -1,6 +1,7 @@
 import { dateIn, dateOut, decimalIn, decimalOut, inList, inTransaction, query, setClause, sql, timeIn, timeOut } from './sql-kit.js';
 
-// Batches, their rows, the issues the checks found, and the outbound files, in SQL.
+// Batches, their rows, the issues the worker's checks found, and the outbound files, in SQL. The app reads them;
+// the writes are the worker's, used by the tests and the demo to stand in for it.
 
 const ROWS_PER_INSERT = 100; // 14 parameters a row keeps a statement well under SQL Server's 2,100
 
@@ -94,13 +95,13 @@ export async function guardedUpdate(runner, table, idColumn, id, patch, columns,
 
 export function batchStore(pool, s) {
   return {
-    async createBatch({ batch, rows, issues, supersede = null }) {
+    async createBatch({ batch, rows, issues = [] }) {
       return inTransaction(pool, async (tx) => {
         const created = await query(tx, `INSERT ${s.nom}.Batch (Environment, Status, GasDayFrom, GasDayTo, SourceFile, SourceSha256,
-            ContentSha256, SupersedesBatchId, CreatedBy, ValidatedAtUtc, ApprovedBy, ApprovedAtUtc)
+            ContentSha256, SupersedesBatchId, CreatedBy, CreatedAtUtc, ValidatedAtUtc, ApprovedBy, ApprovedAtUtc)
           OUTPUT inserted.*
           VALUES (@environment, @status, @gasDayFrom, @gasDayTo, @sourceFile, @sourceSha256, @contentSha256, @supersedesBatchId,
-            @createdBy, @validatedAt, @approvedBy, @approvedAt)`, {
+            @createdBy, ISNULL(@createdAt, sysutcdatetime()), @validatedAt, @approvedBy, @approvedAt)`, {
           environment: [sql.VarChar(4), batch.environment],
           status: [sql.VarChar(20), batch.status],
           gasDayFrom: [sql.Date, dateIn(batch.gasDayFrom)],
@@ -110,6 +111,7 @@ export function batchStore(pool, s) {
           contentSha256: [sql.Char(64), batch.contentSha256],
           supersedesBatchId: [sql.Int, batch.supersedesBatchId ?? null],
           createdBy: [sql.NVarChar(100), batch.createdBy],
+          createdAt: [sql.DateTime2(0), timeIn(batch.createdAt)],
           validatedAt: [sql.DateTime2(0), timeIn(batch.validatedAt)],
           approvedBy: [sql.NVarChar(100), batch.approvedBy ?? null],
           approvedAt: [sql.DateTime2(0), timeIn(batch.approvedAt)],
@@ -147,18 +149,6 @@ export function batchStore(pool, s) {
           });
         }
 
-        if (supersede?.ids?.length) {
-          const ids = inList('old', sql.Int, supersede.ids);
-          const from = inList('from', sql.VarChar(20), supersede.from);
-          await query(tx, `UPDATE f SET Status = 'FAILED', LastError = @note
-            FROM ${s.nom}.OutboundFile f JOIN ${s.nom}.Batch b ON b.BatchId = f.BatchId
-            WHERE f.BatchId IN (${ids.text}) AND f.Status = 'BUILT' AND b.Status IN (${from.text})`, {
-            ...ids.params, ...from.params, note: [sql.NVarChar(2000), supersede.fileNote],
-          });
-          await query(tx, `UPDATE ${s.nom}.Batch SET Status = 'SUPERSEDED' WHERE BatchId IN (${ids.text}) AND Status IN (${from.text})`, {
-            ...ids.params, ...from.params,
-          });
-        }
         return record;
       });
     },
@@ -178,6 +168,30 @@ export function batchStore(pool, s) {
         environment: [sql.VarChar(4), environment], ...(statuses?.params ?? {}), ...(idList?.params ?? {}),
       });
       return result.recordset.map(mapBatch);
+    },
+    // For each batch: its lines, inlet and outlet totals, the issues the checks found, and AGIG's error lines.
+    async batchSummaries(batchIds) {
+      if (!batchIds.length) return [];
+      const ids = inList('id', sql.Int, batchIds);
+      const result = await query(pool, `SELECT b.BatchId,
+          (SELECT COUNT(*) FROM ${s.nom}.BatchRow r WHERE r.BatchId = b.BatchId) AS Lines,
+          (SELECT ISNULL(SUM(r.QuantityTJ), 0) FROM ${s.nom}.BatchRow r WHERE r.BatchId = b.BatchId AND r.NomType = 'Inlet') AS InletTJ,
+          (SELECT ISNULL(SUM(r.QuantityTJ), 0) FROM ${s.nom}.BatchRow r WHERE r.BatchId = b.BatchId AND r.NomType = 'Outlet') AS OutletTJ,
+          (SELECT COUNT(*) FROM ${s.nom}.ValidationIssue i WHERE i.BatchId = b.BatchId AND i.Severity = 'Error') AS IssueErrors,
+          (SELECT COUNT(*) FROM ${s.nom}.ValidationIssue i WHERE i.BatchId = b.BatchId AND i.Severity = 'Warning') AS IssueWarnings,
+          (SELECT COUNT(*) FROM ${s.nom}.ResponseError e
+             JOIN ${s.nom}.InboundResponse ir ON ir.ResponseId = e.ResponseId
+             JOIN ${s.nom}.OutboundFile f ON f.FileId = ir.FileId
+           WHERE f.BatchId = b.BatchId) AS AgigErrors
+        FROM ${s.nom}.Batch b WHERE b.BatchId IN (${ids.text})`, ids.params);
+      const byId = new Map(result.recordset.map((row) => [row.BatchId, row]));
+      return batchIds.filter((id) => byId.has(id)).map((id) => {
+        const row = byId.get(id);
+        return {
+          batchId: id, lines: row.Lines, inletTJ: decimalOut(row.InletTJ), outletTJ: decimalOut(row.OutletTJ),
+          issueErrors: row.IssueErrors, issueWarnings: row.IssueWarnings, agigErrors: row.AgigErrors,
+        };
+      });
     },
     async listRows(batchIds) {
       if (!batchIds.length) return [];
@@ -208,10 +222,6 @@ export function batchStore(pool, s) {
     },
     async getFile(id, { body = false } = {}) {
       const result = await query(pool, `SELECT ${body ? '*' : FILE_SUMMARY} FROM ${s.nom}.OutboundFile WHERE FileId = @id`, { id: [sql.Int, id] });
-      return result.recordset[0] ? mapFile(result.recordset[0]) : null;
-    },
-    async findFileByName(fileName) {
-      const result = await query(pool, `SELECT ${FILE_SUMMARY} FROM ${s.nom}.OutboundFile WHERE FileName = @name`, { name: [sql.VarChar(120), fileName] });
       return result.recordset[0] ? mapFile(result.recordset[0]) : null;
     },
     async listFiles({ status = null, batchIds = null } = {}) {

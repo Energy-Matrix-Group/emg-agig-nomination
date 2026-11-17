@@ -1,15 +1,13 @@
-// A batch's life, as the design drew it: Validated, Approved, Built, Uploaded, then Accepted or Rejected, with the
-// side states Duplicate, Superseded and Cancelled. A failed or rejected batch is never edited: the lines are
-// corrected and published again, and the new batch supersedes it. (IMPORTED and VALIDATION_FAILED are in the
-// design's CHECK constraint but never written here: the checks run before a batch is made, so a batch with an
-// error never exists.)
+// A batch's life, as the design drew it and the worker writes it: Imported, then Validated or Validation failed,
+// Approved, Built, Uploaded, then Accepted or Rejected, with No response and Upload uncertain when AGIG's answer
+// does not come or a file's fate is unknown, and the side states Duplicate, Superseded and Cancelled.
 
 export const STATUS_LABELS = {
-  IMPORTED: 'Imported',
+  IMPORTED: 'Loaded, being checked',
   VALIDATION_FAILED: 'Failed the checks',
-  VALIDATED: 'Waiting for approval',
+  VALIDATED: 'Checked, waiting for approval',
   APPROVED: 'Approved',
-  BUILT: 'Ready to send',
+  BUILT: 'File made, not sent yet',
   UPLOADING: 'Uploading',
   UPLOADED: 'Sent, waiting for AGIG',
   UPLOAD_UNCERTAIN: 'Upload uncertain',
@@ -21,8 +19,7 @@ export const STATUS_LABELS = {
   CANCELLED: 'Cancelled',
 };
 
-export const PENDING = ['VALIDATED', 'APPROVED', 'BUILT']; // made, not sent yet: a newer batch supersedes these
+export const PENDING = ['IMPORTED', 'VALIDATED', 'APPROVED', 'BUILT']; // loaded, not sent yet
 export const IN_FLIGHT = ['UPLOADING', 'UPLOADED']; // with AGIG, no answer yet
-export const NEEDS_ATTENTION = ['REJECTED', 'NO_RESPONSE', 'UPLOAD_UNCERTAIN'];
-export const CANCELLABLE = ['IMPORTED', 'VALIDATION_FAILED', 'VALIDATED', 'APPROVED', 'BUILT', 'DUPLICATE'];
+export const NEEDS_ATTENTION = ['VALIDATION_FAILED', 'REJECTED', 'NO_RESPONSE', 'UPLOAD_UNCERTAIN'];
 export const SET_ASIDE = ['DUPLICATE', 'CANCELLED', 'SUPERSEDED']; // never counted as the latest numbers

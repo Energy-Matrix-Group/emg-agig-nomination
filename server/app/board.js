@@ -1,4 +1,3 @@
-import { isValidOn, lineKey } from './rules/lines.js';
 import { formatMilli, toMilli } from './quantity.js';
 import { IN_FLIGHT, NEEDS_ATTENTION, PENDING, SET_ASIDE, STATUS_LABELS } from './statuses.js';
 import { ADVANCE_DAYS, addDays, awstToday, daysBetween, initialCutoff, renominationCutoff } from './time.js';
@@ -8,12 +7,23 @@ import { ADVANCE_DAYS, addDays, awstToday, daysBetween, initialCutoff, renominat
 //   green  the latest numbers published are the ones AGIG accepted
 //   blue   a file is with AGIG, waiting for its answer
 //   amber  newer numbers than AGIG has accepted are not sent yet, or a cutoff is close with nothing accepted
-//   red    the last file was rejected, had no answer or may not have arrived, or the cutoff passed with nothing
+//   red    the last batch failed the checks, or its file was rejected, had no answer or may not have arrived, or
+//          the cutoff passed with nothing accepted (or with newer numbers never sent)
 //   grey   no active contract that day, or more than 90 days out
 //   none   nothing sent yet, with time to spare
 // It is worked out here from the batches, files and rows, as nom.vGasDayStatus did for Power BI.
 
 export const BOARD_DAYS = { before: 1, after: 7 };
+
+// What makes two rows the same line for AGIG: the Gas Day, contract, Nom Type, point, marketer and service type
+// (the key nom.vAcceptedNomination ranks by).
+export function lineKey(row) {
+  return [row.gasDay, row.contract, row.nomType, row.designation, row.marketer ?? '', row.serviceType ?? ''].join('|');
+}
+
+export function isValidOn(record, day, fromField = 'validFrom', toField = 'validTo') {
+  return record[fromField] <= day && (!record[toField] || day <= record[toField]);
+}
 
 // The nomination AGIG holds for each line of a Gas Day: for every line (contract, Nom Type, point, marketer,
 // service type), the value in the latest accepted file that carried it (nom.vAcceptedNomination's rule).
@@ -94,6 +104,7 @@ export async function gasDayBoard(app) {
     else if (latest && PENDING.includes(latest.status)) [colour, label] = ['amber', accepted ? 'Newer numbers not sent yet' : 'Published, not sent yet'];
     else if (!held.length && now > renomination) [colour, label] = ['red', 'Cutoff passed, nothing accepted'];
     else if (held.length) [colour, label] = ['green', 'Accepted'];
+    else if (now > initial) [colour, label] = ['amber', 'Nothing accepted, renominations only'];
     else if (initial.getTime() - now.getTime() < cutoffWarningMinutes * 60_000) [colour, label] = ['amber', 'Cutoff close, nothing accepted'];
     else [colour, label] = ['none', 'Nothing sent yet'];
 

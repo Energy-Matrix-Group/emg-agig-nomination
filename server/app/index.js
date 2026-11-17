@@ -1,7 +1,5 @@
 import { gasDayBoard } from './board.js';
 import { batchDetail } from './detail.js';
-import { startJobs } from './jobs.js';
-import { createMailbox, NO_MAILBOX } from './mailbox.js';
 import { createRoutes } from './routes.js';
 import { readSettings } from './settings.js';
 import { openStore } from './store/index.js';
@@ -11,43 +9,34 @@ import { openStore } from './store/index.js';
 export const catalog = {
   id: 'agig-nomination',
   name: 'AGIG Nominations',
-  description: 'Shipper transport nominations to AGIG\'s TBS: enter, check, send and track every Gas Day against the cutoffs.',
+  description: 'Shipper nominations to AGIG\'s TBS: every Gas Day against the cutoffs, every batch and AGIG\'s answers, and the alerts.',
   apiPrefix: '/api/agig-nomination',
   statusLabel: null,
-  message: 'Shipper transport nominations to AGIG\'s TBS: enter, check, send and track every Gas Day against the cutoffs.',
+  message: 'Shipper nominations to AGIG\'s TBS: every Gas Day against the cutoffs, every batch and AGIG\'s answers, and the alerts.',
 };
 
 // A static UI: one folder per page under web/, no build step. No page opens without a sign-in.
 export const ui = { root: 'web', spa: false, publicPaths: [] };
 
-// Runs once at boot. Its result is `app` in every handler: the store, the settings, the clock and the mailbox.
-// It must not take the service down over its database: openStore falls back to memory and says so
-// (databaseConnected: false), and then no job reaches the outside world.
+// Runs once at boot. Its result is `app` in every handler: the store, the settings and the clock. It starts no
+// background job: the design's worker loads the batches, sends the files, reads AGIG's emails and raises the
+// alerts, and this app only watches what it writes. It must not take the service down over its database:
+// openStore falls back to memory and says so (databaseConnected: false).
 //
-// The tests pass a clock, a fetch and jobs: false, so time and the network are theirs.
-export async function setup({ sql = null, env = {}, connect, clock = () => new Date(), fetch = globalThis.fetch, jobs = true } = {}) {
+// The tests pass a clock, so time is theirs.
+export async function setup({ sql = null, env = {}, connect, clock = () => new Date() } = {}) {
   const settings = readSettings(env);
   const opened = await openStore({ sql, env, connect, clock });
-  const app = {
-    ...opened,
-    settings,
-    clock,
-    fetch,
-    appUrl: String(env.APP_URL ?? '').replace(/\/+$/, '') || null,
-    mailbox: settings.mail ? createMailbox({ mail: settings.mail, fetch, clock }) : NO_MAILBOX,
-    runtime: { agentSeenAt: null, uploadingSince: new Map(), postedThrough: 0, jobs: {} },
-  };
-  if (jobs && opened.databaseConnected !== false) app.jobs = startJobs(app);
-  return app;
+  return { ...opened, settings, clock };
 }
 
 // auth: true means a signed-in user. The portal has already checked that they may open this app.
 export const routes = createRoutes(catalog.apiPrefix);
 
-// What Joules, the EMG helper in the portal, can do here for a person. Each action runs as that person. They
-// only look: publishing a nomination stays a deliberate step on the New nomination page.
+// What Joules, the EMG helper in the portal, can do here for a person. Each action runs as that person, and they
+// only look, as the app does.
 export const assistant = {
-  about: 'AGIG Nominations sends EMG\'s shipper transport nominations (SHNOM files) to AGIG\'s TBS for the DBNGP and the other AGIG pipelines, and tracks each Gas Day against the cutoffs: 14:00 AWST the day before for the initial nomination, 20:00 AWST on the day for renominations. Joules can say whether each Gas Day is covered by an accepted nomination, what happened to a batch, and which alerts are open.',
+  about: 'AGIG Nominations shows how EMG\'s shipper transport nominations (SHNOM files) to AGIG\'s TBS are going, for the DBNGP and the other AGIG pipelines: each Gas Day against the cutoffs (14:00 AWST the day before for the initial nomination, 20:00 AWST on the day for renominations), every batch and AGIG\'s answers. The nominations themselves come from the ops team\'s workbook through the nomination worker. Joules can say whether each Gas Day is covered by an accepted nomination, what happened to a batch, and which alerts are open.',
   actions: [
     {
       name: 'gas_day_status',

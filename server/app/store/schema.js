@@ -1,7 +1,7 @@
 // The app's tables, as the design's SQL setup script made them (docs/schema/agig-nomination.sql is written from
 // this file by `node scripts/write-schema-script.js`; test/schema.test.js fails when they differ). Three schemas:
-// `ref` for master data, `nom` for each submission's life and `ops` for health. Two tables are new since the
-// design: nom.SpotAward (the workbook's Spot_Award tab) and ops.AuditLog (who changed what).
+// `ref` for master data, `nom` for each submission's life and `ops` for health: the design's twelve tables and two
+// views, exactly. The design's worker writes them; this app reads them (and acknowledges and clears alerts).
 //
 // {ref}, {nom} and {ops} stand for the schema names, which are fixed in code (DEFAULT_SCHEMAS). Only the SQL tests
 // use others, a throwaway set per run, checked against SCHEMA_NAME before they reach any SQL text.
@@ -170,18 +170,7 @@ export const TABLES = [
     ],
     indexes: [['IX_ResponseError_Response', '(ResponseId)']],
   },
-  {
-    schema: 'nom', name: 'SpotAward', added: true,
-    columns: [
-      ['SpotAwardId', 'int IDENTITY(1,1) PRIMARY KEY'],
-      ['GasDay', 'date NOT NULL'],
-      ['ContractCode', 'varchar(60) NOT NULL'],
-      ['AwardedTJ', 'decimal(12,3) NOT NULL CHECK (AwardedTJ >= 0)'],
-      ['EnteredBy', 'nvarchar(100) NOT NULL'],
-      ['EnteredAtUtc', 'datetime2(0) NOT NULL DEFAULT sysutcdatetime()'],
-    ],
-    constraints: ['CONSTRAINT UQ_SpotAward UNIQUE (GasDay, ContractCode)'],
-  },
+
   {
     schema: 'ops', name: 'Alert',
     columns: [
@@ -198,19 +187,7 @@ export const TABLES = [
     ],
     indexes: [['IX_Alert_Open', '(ClearedAtUtc, Severity)']],
   },
-  {
-    schema: 'ops', name: 'AuditLog', added: true,
-    columns: [
-      ['AuditLogId', 'int IDENTITY(1,1) PRIMARY KEY'],
-      ['Action', 'varchar(40) NOT NULL'],
-      ['EntityType', 'varchar(20) NOT NULL'],
-      ['EntityId', 'int NULL'],
-      ['Detail', 'nvarchar(1000) NULL'],
-      ['ActorEmail', 'nvarchar(200) NOT NULL'],
-      ['AtUtc', 'datetime2(0) NOT NULL DEFAULT sysutcdatetime()'],
-    ],
-    indexes: [['IX_AuditLog_Entity', '(EntityType, EntityId)']],
-  },
+
 ];
 
 // The design's two views, unchanged, for anyone who reads the database directly (SSMS, Excel, a report). The app

@@ -4,14 +4,13 @@ import { mountChrome, requireUser } from '/platform/shell.js';
 
 // What every page of AGIG Nominations shares: the shell and its links, the environment banner, and small helpers
 // for building the page. Everything from the API is put on the page with textContent (el() below), never as markup.
+// The app only watches what the nomination worker writes; the one thing a page can change is an alert.
 
 export const ID = document.body.dataset.app; // set in each page's HTML: the one place a page names the app
 export const API = `/api/${ID}`;
 
 const PAGES = [
   { key: 'board', label: 'Gas Day board', href: '/', icon: 'overview' },
-  { key: 'nominate', label: 'New nomination', href: '/nominate/', icon: 'agig-nomination' },
-  { key: 'spot', label: 'Spot awards', href: '/spot/', icon: 'bolt' },
   { key: 'batches', label: 'Submissions', href: '/batches/', icon: 'devboard' },
   { key: 'responses', label: 'AGIG responses', href: '/responses/', icon: 'documentation' },
   { key: 'system', label: 'System and alerts', href: '/system/', icon: 'admin-settings' },
@@ -104,7 +103,6 @@ function environmentBanner(session) {
   const banner = session.environment === 'PROD'
     ? el('p', { class: 'env-banner env-banner--prod', role: 'note' }, 'PRODUCTION: files go to AGIG\'s live TBS.')
     : el('p', { class: 'env-banner', role: 'note' }, 'Non-production (NP): files go to AGIG\'s test system.');
-  if (!session.participant) banner.append(' NOM_PARTICIPANT is not set, so no SHNOM file can be made yet.');
   canvas.prepend(banner);
 }
 
@@ -112,9 +110,12 @@ function environmentBanner(session) {
 const perth = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const perthTime = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const dayFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short' });
+const shortFormat = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Perth', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
 export const when = (iso) => (iso ? perth.format(new Date(iso)) : '');
 export const timeOnly = (iso) => (iso ? perthTime.format(new Date(iso)) : '');
+// "17 Nov 08:39": for table cells, where a whole date and time would not fit.
+export const short = (iso) => (iso ? shortFormat.format(new Date(iso)).replace(',', '') : '');
 export const dayLabel = (day) => (day ? dayFormat.format(new Date(`${day}T12:00:00Z`)) : '');
 
 // "in 3 h 59 min", "12 min ago"
@@ -144,6 +145,15 @@ export function table(headers, rows, { empty = 'Nothing here yet.', className = 
     el('table', {},
       el('thead', {}, el('tr', {}, headers.map((header) => el('th', { scope: 'col', class: header.numeric ? 'num' : null }, header.label ?? header)))),
       el('tbody', {}, rows)));
+}
+
+// A table row that opens a page when clicked anywhere on it. Its first cell should hold a real link to the same
+// page, which is what a keyboard or a screen reader uses.
+export function linkRow(href, cells, props = {}) {
+  return el('tr', { ...props, class: [props.class, 'link-row'].filter(Boolean).join(' '), onclick: (event) => {
+    if (event.target instanceof Element && event.target.closest('a, button')) return;
+    window.location.assign(href);
+  } }, cells);
 }
 
 export function panel(title, ...children) {

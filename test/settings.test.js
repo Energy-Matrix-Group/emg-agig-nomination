@@ -14,9 +14,9 @@ test('the README\'s settings table and .env.example list the same settings', asy
 });
 
 test('every NOM_ setting the code reads is documented', async () => {
-  const code = (await Promise.all(['server/app/settings.js', 'server/app/routes.js'].map(read))).join('\n');
+  const code = await read('server/app/settings.js');
   const used = [...new Set([...code.matchAll(/'(NOM_[A-Z_]+)'/g)].map(([, name]) => name))];
   const listed = new Set([...(await read('.env.example')).matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map(([, name]) => name));
-  assert.ok(used.length >= 14);
+  assert.deepEqual(used.sort(), ['NOM_CUTOFF_WARNING_MINUTES', 'NOM_ENVIRONMENT']);
   for (const name of used) assert.ok(listed.has(name), `${name} is in .env.example`);
 });

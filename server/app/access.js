@@ -1,13 +1,12 @@
 import { httpError } from '../platform/kit.js';
 
-// The portal decides who may open this app. Inside it, everyone who can open it may look at everything. Changing
-// anything (publishing a nomination, entering a Spot award, acting on a batch or an alert, editing reference data)
-// is for the ops team: people whose company role is Ops Trader or Manager, and administrators (a portal
-// administrator, or the Administrator role). The role tells this app who someone is (docs/ARCHITECTURE.md, 3.1);
-// the rule is this app's own, and lives here and nowhere else.
+// The portal decides who may open this app. Inside it, everyone who can open it may look at everything. The one
+// thing anyone can change here, acknowledging or clearing an alert, is for the ops team: people whose company role
+// is Ops Trader or Manager, and administrators (a portal administrator, or the Administrator role). The role tells
+// this app who someone is (docs/ARCHITECTURE.md, 3.1); the rule is this app's own, and lives here and nowhere else.
 const OPERATOR_ROLES = new Set(['ops-trader', 'manager', 'administrator']);
 
-export const OPERATOR_DENIED = 'Only the ops team can change nominations here. Ask an administrator if you need to.';
+export const OPERATOR_DENIED = 'Only the ops team can acknowledge or clear alerts. Ask an administrator if you need to.';
 
 export function canOperate(user) {
   return Boolean(user?.isPortalAdmin) || OPERATOR_ROLES.has(user?.role);

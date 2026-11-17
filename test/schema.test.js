@@ -57,11 +57,11 @@ test('a database whose tables are another shape is refused, naming the missing c
   await assert.rejects(ensureSchema(fakePool({ columns })), /Missing columns: nom\.Batch\.ContentSha256/);
 });
 
-test('the design\'s tables, columns and constraints are all here, plus the two new tables', () => {
+test('the design\'s twelve tables, their columns and constraints, and its two views, are all here', () => {
   assert.deepEqual(TABLES.map((table) => `${table.schema}.${table.name}`), [
     'ref.Pipeline', 'ref.Designation', 'ref.FileTemplate', 'ref.ErrorCode', 'ref.Contract',
-    'nom.Batch', 'nom.BatchRow', 'nom.ValidationIssue', 'nom.OutboundFile', 'nom.InboundResponse', 'nom.ResponseError', 'nom.SpotAward',
-    'ops.Alert', 'ops.AuditLog',
+    'nom.Batch', 'nom.BatchRow', 'nom.ValidationIssue', 'nom.OutboundFile', 'nom.InboundResponse', 'nom.ResponseError',
+    'ops.Alert',
   ]);
   const text = schemaStatements().join('\n');
   for (const piece of ['CONSTRAINT UQ_Batch_Source UNIQUE (SourceSha256)', 'FileName varchar(120) NOT NULL UNIQUE', 'GraphMessageId varchar(200) NOT NULL UNIQUE', "CHECK (MatchState IN ('UNMATCHED','MATCHED','MANUAL','UNPARSEABLE'))", 'CREATE VIEW nom.vAcceptedNomination', 'CREATE VIEW nom.vGasDayStatus']) {
@@ -78,10 +78,9 @@ test('input never reaches the SQL text', async () => {
   const pool = fakePool();
   const store = createSqlStore(pool);
   const hostile = "x'; DROP TABLE nom.Batch; --";
-  await store.findFileByName(hostile);
-  await store.findResponseByMessageId(hostile);
   await store.listBatches({ from: '2026-11-17', status: ['BUILT'], environment: hostile });
-  await store.addAudit({ action: 'test', entityType: 'Batch', entityId: 1, detail: hostile, actor: hostile });
+  await store.updateAlert(1, { acknowledgedBy: hostile, acknowledgedAt: new Date() });
+  await store.raiseAlert({ type: 'TEST', severity: 'Info', message: hostile });
   for (const text of pool.statements) assert.doesNotMatch(text, /DROP TABLE/);
   assert.ok(pool.inputs.some(([, value]) => value === hostile));
 });
