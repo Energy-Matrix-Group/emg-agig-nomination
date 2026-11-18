@@ -1,8 +1,8 @@
 import { api, API, badge, button, el, fill, gasDay, linkRow, modelId, nextCutoff, showMessage, startPage, table, when } from '/shared.js';
 
 // The Gas Day board answers two questions at a glance: is each Gas Day covered, and how long until its next
-// cutoff? The open alerts sit across the top, one line each, then one line per Gas Day from yesterday to a week
-// ahead. Eve, 17 November 2026: "does not need all details, make it clearer".
+// cutoff? The open alerts sit across the top, one line each, then one line per Gas Day from today to 31 days
+// ahead (Eve, 18 November 2026). Eve, 17 November 2026: "does not need all details, make it clearer".
 //
 // Eve has more than six workbook models, each sending its own files to AGIG on lines of its own (18 November 2026).
 // So with every model on show, a day's line counts its models by state ("6 accepted · 1 with AGIG · 1 needs
@@ -14,7 +14,7 @@ const COLOUR_TONE = { green: 'good', blue: 'info', amber: 'warn', red: 'bad', gr
 const COUNT_WORDS = { red: ['needs attention', 'need attention'], amber: ['loaded, not sent', 'loaded, not sent'], blue: ['with AGIG', 'with AGIG'], none: ['nothing sent', 'nothing sent'], green: ['accepted', 'accepted'] };
 const SEVERITY_TONE = { Critical: 'bad', Warning: 'warn', Info: 'info' };
 const SEVERITY_ORDER = { Critical: 0, Warning: 1, Info: 2 };
-const DAY_TAG = { '-1': 'Yesterday', 0: 'Today', 1: 'Tomorrow' };
+const DAY_TAG = { 0: 'Today', 1: 'Tomorrow' };
 const BANNER_LINES = 3;
 const REMEMBERED = 'agig-nomination:board-model';
 const content = document.querySelector('[data-content]');

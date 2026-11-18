@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { TODAY, TOMORROW, withApp } from './support.js';
 import { acceptedDay, addContracts, buildFile, dayRows, loadBatch, raiseAlert } from './worker.js';
 
-// The Gas Day board: one row per Gas Day, D-1 to D+7, from what the worker wrote.
+// The Gas Day board: one row per Gas Day, today to D+31, from what the worker wrote.
 
 const day = async (ops, gasDay) => (await ops.call('/board')).data.days.find((item) => item.gasDay === gasDay);
 
@@ -13,10 +13,10 @@ test('every route needs a signed-in person', async () => {
   });
 });
 
-test('nine days, each with both cutoffs, grey where no contract is active', async () => {
-  await withApp(async ({ ops, store }) => {
+test('today and the next 31 days, each with both cutoffs, grey where no contract is active', async () => {
+  await withApp(async ({ ops, store, clock }) => {
     const board = (await ops.call('/board')).data;
-    assert.deepEqual([board.days.length, board.days[0].gasDay, board.days.at(-1).gasDay], [9, '2026-11-15', '2026-11-23']);
+    assert.deepEqual([board.days.length, board.days[0].gasDay, board.days[0].offset, board.days.at(-1).gasDay], [32, '2026-11-16', 0, '2026-12-17']);
     assert.equal(board.cutoffWarningMinutes, 60, 'the page marks a cutoff closer than this');
     assert.ok(board.days.every((item) => item.colour === 'grey'), 'no contracts yet');
     await addContracts(store);
@@ -24,7 +24,11 @@ test('nine days, each with both cutoffs, grey where no contract is active', asyn
     assert.equal(tomorrow.initialCutoff, '2026-11-16T06:00:00.000Z', '14:00 AWST the day before');
     assert.equal(tomorrow.renominationCutoff, '2026-11-17T12:00:00.000Z', '20:00 AWST on the day');
     assert.deepEqual([tomorrow.colour, tomorrow.label], ['none', 'Nothing sent yet']);
-    assert.deepEqual([(await day(ops, '2026-11-15')).colour, (await day(ops, '2026-11-15')).label], ['red', 'Cutoff passed, nothing accepted']);
+    clock.set('2026-11-16T12:01:00Z'); // 20:01 in Perth: today's renominations have closed
+    assert.deepEqual([(await day(ops, '2026-11-16')).colour, (await day(ops, '2026-11-16')).label], ['red', 'Cutoff passed, nothing accepted']);
+    clock.set('2026-11-16T16:00:00Z'); // midnight in Perth: the board moves on a day
+    const next = (await ops.call('/board')).data;
+    assert.deepEqual([next.today, next.days[0].gasDay, next.days.at(-1).gasDay], ['2026-11-17', '2026-11-17', '2026-12-18']);
   });
 });
 

@@ -42,7 +42,7 @@ export const assistant = {
       name: 'gas_day_status',
       kind: 'read',
       title: 'Gas Day status',
-      description: 'For yesterday to a week ahead: whether AGIG has accepted a nomination for each Gas Day, model by model (each workbook model sends its own files), what is waiting, and when the cutoffs fall (times in UTC; AWST is UTC+8). Give a model id to see only that model.',
+      description: 'For today and the next 31 days: whether AGIG has accepted a nomination for each Gas Day, model by model (each workbook model sends its own files), what is waiting, and when the cutoffs fall (times in UTC; AWST is UTC+8). Give a model id to see only that model.',
       input: { type: 'object', properties: { model: { type: 'string', maxLength: 100, description: 'A model id, to see only that model. Leave it out for every model.' } } },
       run: async ({ app, input }) => {
         const board = await gasDayBoard(app, { model: input?.model?.trim() || null });

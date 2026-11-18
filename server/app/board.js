@@ -3,7 +3,7 @@ import { IN_FLIGHT, NEEDS_ATTENTION, PENDING, SET_ASIDE, STATUS_LABELS } from '.
 import { ADVANCE_DAYS, addDays, awstToday, daysBetween, initialCutoff, renominationCutoff } from './time.js';
 
 // The Gas Day board answers one question first: is every Gas Day covered by an accepted nomination, and how long
-// until the cutoff? One card per Gas Day from D-1 to D+7, with the design's colours:
+// until the cutoff? One line per Gas Day from today to 31 days ahead, with the design's colours:
 //   green  the latest numbers published are the ones AGIG accepted
 //   blue   a file is with AGIG, waiting for its answer
 //   amber  newer numbers than AGIG has accepted are not sent yet, or a cutoff is close with nothing accepted
@@ -13,7 +13,9 @@ import { ADVANCE_DAYS, addDays, awstToday, daysBetween, initialCutoff, renominat
 //   none   nothing sent yet, with time to spare
 // It is worked out here from the batches, files and rows, as nom.vGasDayStatus did for Power BI.
 
-export const BOARD_DAYS = { before: 1, after: 7 };
+// Today's Gas Day (its date in Perth) and the next 31 (Eve, 18 November 2026: "always ... current gas day to the
+// next 31 days"). Yesterday is closed to AGIG, so it is not on the board; its batches are on Submissions.
+export const BOARD_DAYS = { before: 0, after: 31 };
 
 // What makes two rows the same line for AGIG: the Gas Day, contract, Nom Type, point, marketer and service type
 // (the key nom.vAcceptedNomination ranks by).
@@ -120,7 +122,7 @@ function overlapsOf(latestByModel, rowsByBatch, day) {
 
 const byModelId = (a, b) => (a.modelId === null) - (b.modelId === null) || String(a.modelId).localeCompare(String(b.modelId));
 
-// The Gas Day board, D-1 to D+7. With several models (Eve: more than six, each sending its own files, on lines of
+// The Gas Day board, D to D+31. With several models (Eve: more than six, each sending its own files, on lines of
 // their own), each Gas Day is judged model by model, and the day is as bad as its worst model. `model` narrows the
 // board to one model, judged as the whole board was before there were models.
 export async function gasDayBoard(app, { model = null } = {}) {

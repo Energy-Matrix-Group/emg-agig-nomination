@@ -4,7 +4,7 @@ Shipper nominations to AGIG's TBS: every Gas Day against the cutoffs, every batc
 
 The monitoring side of the design "AGIG TBS B2B Nomination Integration – Solution Design": what the design planned as a Power BI report and SSMS procedures, as a web app people open from the portal. **It only watches.** The ops team makes the nominations in their workbook, and the design's nomination worker on the office VM loads each batch into the database, checks it, sends its SHNOM file to AGIG over SFTP, reads AGIG's emailed answer and raises the alerts. This app reads those tables:
 
-- **Gas Day board**: the open alerts across the top, then one row per Gas Day from yesterday to a week ahead, coloured green, blue, amber, red or grey, with countdowns to 14:00 AWST the day before and 20:00 AWST on the day.
+- **Gas Day board**: the open alerts across the top, then one row per Gas Day from today to 31 days ahead, coloured green, blue, amber, red or grey, with countdowns to 14:00 AWST the day before and 20:00 AWST on the day.
 - **Submissions**: every batch, with its lines, totals, what the checks found, AGIG's errors and where its file got to. Open one to see its lines, with the problems on each, how it changes what AGIG held, the file and AGIG's answers.
 - **AGIG responses**, **System and alerts** (where the ops team acknowledges and clears alerts: the one thing the app changes) and **Reference data** (read-only).
 
