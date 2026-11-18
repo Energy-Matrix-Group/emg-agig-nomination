@@ -45,6 +45,10 @@
 .link-row { cursor: pointer; }
 .link-row:hover td { background: var(--emg-raised); }
 
+/* A batch's model id: an identifier people read, so it stands out a little, and a long one is cut short (its
+   whole value is in the tooltip). */
+.model-id { display: inline-block; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; font-weight: 600; color: var(--emg-heading); }
+
 /* ---------- The Gas Day board ---------- */
 /* The open alerts: one line each, the badges in a column of their own so the messages line up. */
 .alerts-banner {
@@ -108,9 +112,13 @@ a.day-link:hover { text-decoration: underline; }
 .batch-list td { font-size: 0.8rem; }
 .batch-list td:first-child { padding-left: 1rem; }
 /* The batch number stays in view while the rest scrolls sideways. */
-.batch-list th:first-child, .batch-list td:first-child { position: sticky; left: 0; z-index: 1; background: var(--emg-panel); }
-.batch-list th:first-child { background: var(--emg-raised); }
-.batch-list .link-row:hover td:first-child { background: var(--emg-raised); }
+/* The batch number and its model stay on the left while the rest scrolls, so a row is always known. The first
+   column has a fixed width so the second knows where to stick. */
+.batch-list th:nth-child(-n+2), .batch-list td:nth-child(-n+2) { position: sticky; z-index: 1; background: var(--emg-panel); }
+.batch-list th:first-child, .batch-list td:first-child { left: 0; width: 4.25rem; min-width: 4.25rem; max-width: 4.25rem; box-sizing: border-box; }
+.batch-list th:nth-child(2), .batch-list td:nth-child(2) { left: 4.25rem; box-shadow: inset -1px 0 0 var(--emg-line-strong); } /* the freeze line */
+.batch-list th:nth-child(-n+2) { background: var(--emg-raised); }
+.batch-list .link-row:hover td:nth-child(-n+2) { background: var(--emg-raised); }
 .batch-row--accepted { --tone: var(--emg-good); }
 .batch-row--uploaded, .batch-row--uploading { --tone: var(--emg-feature); }
 .batch-row--rejected, .batch-row--validation_failed, .batch-row--no_response, .batch-row--upload_uncertain { --tone: var(--emg-bad); }

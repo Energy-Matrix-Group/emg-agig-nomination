@@ -1,4 +1,4 @@
-import { act, api, API, badge, button, el, fill, panel, relative, showMessage, startPage, table, when } from '/shared.js';
+import { act, api, API, badge, button, el, fill, modelId, panel, relative, showMessage, startPage, table, when } from '/shared.js';
 
 // System and alerts: what needs someone now (the open alerts, which the ops team acknowledges and clears), where
 // the files are, and the alerts closed lately. The worker raises the alerts; this page only settles them.
@@ -67,9 +67,10 @@ function alertButton(alert, action, label) {
 }
 
 function filesTable(files) {
-  return table(['File', 'Batch', 'Where it is', 'Made', 'Sent'], files.map((file) => el('tr', {},
+  return table(['File', 'Batch', 'Model', 'Where it is', 'Made', 'Sent'], files.map((file) => el('tr', {},
     el('td', { class: 'mono small' }, file.fileName),
     el('td', {}, el('a', { href: `/batch/?id=${file.batchId}` }, `Batch ${file.batchId}`)),
+    el('td', { class: 'nowrap' }, modelId(file.modelId)),
     el('td', {}, badge(FILE_STATUS[file.status] ?? file.status, ['UPLOAD_UNCERTAIN', 'NO_RESPONSE'].includes(file.status) ? 'bad' : file.status === 'BUILT' ? 'warn' : 'info')),
     el('td', { class: 'small nowrap' }, when(file.builtAt)),
     el('td', { class: 'small nowrap' }, file.uploadedAt ? `${when(file.uploadedAt)} (${relative(file.uploadedAt)})` : '—'),

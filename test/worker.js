@@ -32,7 +32,7 @@ let snapshot = 0;
 
 // The worker loads a snapshot and checks it: VALIDATED (then APPROVED, when approval is automatic) or
 // VALIDATION_FAILED, with what its checks found. `issues` are { line, rule, severity, message }, line 0-based.
-export async function loadBatch(store, rows, { status = 'APPROVED', issues = [], by = 'olive.ops@energymatrix.com.au', at = null, environment = 'NP', supersedes = null } = {}) {
+export async function loadBatch(store, rows, { status = 'APPROVED', issues = [], by = 'olive.ops@energymatrix.com.au', at = null, environment = 'NP', supersedes = null, modelId } = {}) {
   const days = rows.map((row) => row.gasDay).sort();
   snapshot += 1;
   const when = at ? new Date(at) : null;
@@ -42,6 +42,8 @@ export async function loadBatch(store, rows, { status = 'APPROVED', issues = [],
       sourceFile: `F:\\AGIG SFTP TEST\\Archive\\NOM_${by.split('@')[0]}_${String(snapshot).padStart(4, '0')}.xlsx`,
       sourceSha256: `${snapshot}`.padStart(64, 'a'), contentSha256: `${snapshot}`.padStart(64, 'c'), supersedesBatchId: supersedes,
       createdBy: by, createdAt: when, validatedAt: when, approvedBy: status === 'APPROVED' ? by : null, approvedAt: status === 'APPROVED' ? when : null,
+      // Each snapshot names the workbook model that made it; `modelId: null` stands for a batch from before the column.
+      modelId: modelId === undefined ? `MODEL-${String(snapshot).padStart(4, '0')}` : modelId,
     },
     rows: rows.map((row, at2) => ({ ...row, csvLineNumber: at2 + 2 })),
     issues,
@@ -87,8 +89,8 @@ export async function answer(store, batch, file, { status = 'Success', errors = 
 }
 
 // Loads, sends and has AGIG accept a day in one go.
-export async function acceptedDay(store, rows, { at = new Date(), supersedes = null } = {}) {
-  const batch = await loadBatch(store, rows, { at, supersedes });
+export async function acceptedDay(store, rows, { at = new Date(), supersedes = null, modelId } = {}) {
+  const batch = await loadBatch(store, rows, { at, supersedes, modelId });
   const sent = new Date(new Date(at).getTime() + 2 * 60_000);
   const file = await buildFile(store, batch, { at: sent });
   await answer(store, batch, file, { at: new Date(sent.getTime() + 6 * 60_000) });

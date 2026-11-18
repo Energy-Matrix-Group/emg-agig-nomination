@@ -60,7 +60,7 @@ export function createMemoryStore({ clock = () => new Date() } = {}) {
     // Batches, their rows and the issues the worker's checks found
     async createBatch({ batch, rows: newRows, issues: newIssues = [] }) {
       const record = {
-        id: nextId('batch'), supersedesBatchId: null, validatedAt: null, approvedBy: null, approvedAt: null,
+        id: nextId('batch'), supersedesBatchId: null, validatedAt: null, approvedBy: null, approvedAt: null, modelId: null,
         ...copy(isoFields(batch)), createdAt: iso(batch.createdAt) ?? now(),
       };
       batches.push(record);

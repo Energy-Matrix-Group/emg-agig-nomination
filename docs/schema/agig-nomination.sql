@@ -85,6 +85,7 @@ CREATE TABLE nom.Batch (
     ApprovedBy nvarchar(100) NULL,
     ApprovedAtUtc datetime2(0) NULL,
     RowVer rowversion,
+    ModelId nvarchar(100) NULL,
     CONSTRAINT CK_Batch_Days CHECK (GasDayTo >= GasDayFrom),
     CONSTRAINT UQ_Batch_Source UNIQUE (SourceSha256)
 );

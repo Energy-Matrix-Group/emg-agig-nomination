@@ -84,6 +84,9 @@ export const TABLES = [
       ['ApprovedBy', 'nvarchar(100) NULL'],
       ['ApprovedAtUtc', 'datetime2(0) NULL'],
       ['RowVer', 'rowversion'],
+      // Which model in the workbook made this snapshot, as the worker read it (Eve added it, 18 November 2026).
+      // NULL for batches loaded before it. The app shows it as text, whatever its type in the database.
+      ['ModelId', 'nvarchar(100) NULL'],
     ],
     constraints: ['CONSTRAINT CK_Batch_Days CHECK (GasDayTo >= GasDayFrom)', 'CONSTRAINT UQ_Batch_Source UNIQUE (SourceSha256)'],
     indexes: [['IX_Batch_Status', '(Status, Environment)'], ['IX_Batch_Days', '(GasDayFrom, GasDayTo)']],

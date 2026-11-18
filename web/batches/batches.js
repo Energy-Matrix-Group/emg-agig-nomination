@@ -1,6 +1,6 @@
-import { api, API, badge, button, el, fill, gasDay, linkRow, showMessage, startPage, statusBadge, table, took, when } from '/shared.js';
+import { api, API, badge, button, el, fill, gasDay, linkRow, modelId, showMessage, startPage, statusBadge, table, took, when } from '/shared.js';
 
-// Submissions: every batch the worker loaded, newest first, with its lines, totals, what the checks found, AGIG's
+// Submissions: every batch the worker loaded, newest first, with the workbook model it came from, its lines, totals, what the checks found, AGIG's
 // errors and where its file got to. A row opens the batch and its lines.
 
 const VIEWS = [['', 'All'], ['attention', 'Needs attention'], ['waiting', 'Waiting for AGIG']];
@@ -62,9 +62,10 @@ async function load() {
   fill(results,
     el('p', { class: 'muted small' }, `${batches.length} batch${batches.length === 1 ? '' : 'es'}${state.gasDay ? ` covering ${gasDay(state.gasDay)}` : ''}.`),
     table(
-      ['Batch', 'Gas Day', 'Status', { label: 'Lines', numeric: true }, { label: 'TJ out', numeric: true }, 'Problems', 'Loaded', 'By', 'Sent', 'Answered', { label: 'Took', numeric: true }],
+      ['Batch', 'Model', 'Gas Day', 'Status', { label: 'Lines', numeric: true }, { label: 'TJ out', numeric: true }, 'Problems', 'Loaded', 'By', 'Sent', 'Answered', { label: 'Took', numeric: true }],
       batches.map((batch) => linkRow(`/batch/?id=${batch.id}`, [
         el('td', {}, el('a', { href: `/batch/?id=${batch.id}` }, String(batch.id))),
+        el('td', {}, modelId(batch.modelId)),
         el('td', {}, batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`),
         el('td', {}, statusBadge(batch)),
         el('td', { class: 'num' }, String(batch.lines)),

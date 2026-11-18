@@ -1,4 +1,4 @@
-import { api, API, badge, el, fill, gasDay, panel, showMessage, startPage, statusBadge, table, when } from '/shared.js';
+import { api, API, badge, el, fill, gasDay, modelId, panel, showMessage, startPage, statusBadge, table, when } from '/shared.js';
 
 // One batch, its lines first: each line as it went to AGIG, with what the worker's checks found and AGIG's errors
 // pinned to it. Then the totals for each Gas Day, the timeline, how it changes what AGIG held (the design's
@@ -46,7 +46,7 @@ async function draw() {
   const { batch } = detail;
   document.title = `Batch ${batch.id} — AGIG Nominations — EMG`;
   document.querySelector('[data-title]').textContent = `Batch ${batch.id}`;
-  document.querySelector('[data-lede]').replaceChildren(statusBadge(batch), ` ${batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`} · ${detail.rows.length} lines · ${batch.environment}`);
+  document.querySelector('[data-lede]').replaceChildren(statusBadge(batch), ` ${batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`} · ${batch.modelId ? `Model ${batch.modelId} · ` : ''}${detail.rows.length} lines · ${batch.environment}`);
   const [tone, words] = WHERE_IT_IS[batch.status] ?? ['note', ''];
   const problems = detail.rows.filter((row) => row.issues.length || row.agigErrors.length).length;
 
@@ -78,6 +78,7 @@ function facts({ batch, file, supersededBy }) {
   return el('dl', { class: 'facts' },
     item('Loaded', when(batch.createdAt), el('br'), el('span', { class: 'muted small' }, batch.createdBy)),
     item('Approved', batch.approvedAt ? when(batch.approvedAt) : '—', batch.approvedBy ? [el('br'), el('span', { class: 'muted small' }, batch.approvedBy)] : ''),
+    item('Model ID', modelId(batch.modelId)),
     item('From the workbook snapshot', el('span', { class: 'mono small' }, batch.sourceFile)),
     item('File', file ? el('span', { class: 'mono small' }, file.fileName) : '—', file?.lastError ? [el('br'), el('span', { class: 'muted small' }, file.lastError)] : ''),
     batch.supersedesBatchId ? item('Replaces', el('a', { href: `/batch/?id=${batch.supersedesBatchId}` }, `Batch ${batch.supersedesBatchId}`)) : null,

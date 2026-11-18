@@ -138,12 +138,18 @@ export async function listResponses(app) {
   for (const response of responses) {
     if (response.fileId && !files.has(response.fileId)) files.set(response.fileId, await app.store.getFile(response.fileId));
   }
+  const batchIds = [...new Set([...files.values()].filter(Boolean).map((file) => file.batchId))];
+  const modelOf = new Map(batchIds.length ? (await app.store.listBatches({ ids: batchIds, limit: 1000 })).map((batch) => [batch.id, batch.modelId ?? null]) : []);
   return {
-    responses: responses.map(({ rawCsv, ...response }) => ({
-      ...response,
-      batchId: files.get(response.fileId)?.batchId ?? null,
-      errorCount: errors.filter((error) => error.responseId === response.id).length,
-    })),
+    responses: responses.map(({ rawCsv, ...response }) => {
+      const batchId = files.get(response.fileId)?.batchId ?? null;
+      return {
+        ...response,
+        batchId,
+        modelId: batchId === null ? null : modelOf.get(batchId) ?? null,
+        errorCount: errors.filter((error) => error.responseId === response.id).length,
+      };
+    }),
   };
 }
 
@@ -157,7 +163,7 @@ export async function systemView(app) {
   const batches = new Map((await app.store.listBatches({ ids: [...new Set(files.map((file) => file.batchId))], environment: app.settings.environment, limit: 1000 }))
     .map((batch) => [batch.id, batch]));
   const here = files.filter((file) => batches.has(file.batchId));
-  const brief = (file) => ({ id: file.id, batchId: file.batchId, fileName: file.fileName, status: file.status, builtAt: file.builtAt, uploadedAt: file.uploadedAt, respondedAt: file.respondedAt });
+  const brief = (file) => ({ id: file.id, batchId: file.batchId, modelId: batches.get(file.batchId)?.modelId ?? null, fileName: file.fileName, status: file.status, builtAt: file.builtAt, uploadedAt: file.uploadedAt, respondedAt: file.respondedAt });
   const latest = (field) => here.filter((file) => file[field]).sort((a, b) => b[field].localeCompare(a[field]))[0] ?? null;
   return {
     environment: app.settings.environment,

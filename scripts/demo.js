@@ -78,7 +78,7 @@ async function seed() {
   const ago = (minutes) => new Date(Date.now() - minutes * 60_000);
 
   await addContracts(store, { from: day(-60) });
-  await acceptedDay(store, dayRows(day(0)), { at: ago(26 * 60) });
+  await acceptedDay(store, dayRows(day(0)), { at: ago(26 * 60), modelId: null }); // from before the worker recorded a model id
   const tomorrow = await acceptedDay(store, dayRows(day(1), { spot: '2.500' }), { at: ago(5 * 60) });
   const newer = await loadBatch(store, dayRows(day(1), { kemerton: '11.750' }), { at: ago(20), supersedes: tomorrow.id });
   await buildFile(store, newer, { sent: false, at: ago(19) });

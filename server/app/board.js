@@ -117,8 +117,8 @@ export async function gasDayBoard(app) {
       label,
       initialCutoff: initial.toISOString(),
       renominationCutoff: renomination.toISOString(),
-      latest: latest ? { batchId: latest.id, status: latest.status, statusLabel: STATUS_LABELS[latest.status], createdAt: latest.createdAt, createdBy: latest.createdBy, fileName: latestFile?.fileName ?? null, ...totals(latestRows) } : null,
-      accepted: accepted ? { batchId: accepted.id, fileName: acceptedFile?.fileName ?? null, sentAt: acceptedFile?.uploadedAt ?? null } : null,
+      latest: latest ? { batchId: latest.id, modelId: latest.modelId ?? null, status: latest.status, statusLabel: STATUS_LABELS[latest.status], createdAt: latest.createdAt, createdBy: latest.createdBy, fileName: latestFile?.fileName ?? null, ...totals(latestRows) } : null,
+      accepted: accepted ? { batchId: accepted.id, modelId: accepted.modelId ?? null, fileName: acceptedFile?.fileName ?? null, sentAt: acceptedFile?.uploadedAt ?? null } : null,
       held: { lines: held.length, ...totals(held) },
     });
   }

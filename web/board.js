@@ -64,7 +64,7 @@ function row(day) {
     el('td', {},
       href ? el('a', { href, class: 'day-link', 'aria-label': `Gas Day ${date}: open batch ${day.latest.batchId}` }, date) : el('span', { class: 'day-link' }, date),
       DAY_TAG[day.offset] ? el('span', { class: 'day-tag' }, DAY_TAG[day.offset]) : null),
-    el('td', {}, badge(day.label, COLOUR_TONE[day.colour])),
+    el('td', { title: day.latest ? `Latest: batch ${day.latest.batchId}${day.latest.modelId ? `, model ${day.latest.modelId}` : ''}` : '' }, badge(day.label, COLOUR_TONE[day.colour])),
     el('td', { class: 'cutoff', dataset: { initial: day.initialCutoff, renomination: day.renominationCutoff, settled: String(['green', 'grey'].includes(day.colour)) } }),
     el('td', { class: 'num' }, day.held.lines ? day.held.outletTJ : '—'),
   ];

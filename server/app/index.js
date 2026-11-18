@@ -51,7 +51,7 @@ export const assistant = {
           today: board.today,
           days: board.days.map((day) => ({
             gasDay: day.gasDay, status: day.label, colour: day.colour, initialCutoffUtc: day.initialCutoff, renominationCutoffUtc: day.renominationCutoff,
-            latestBatch: day.latest && { id: day.latest.batchId, status: day.latest.statusLabel, outletTJ: day.latest.outletTJ },
+            latestBatch: day.latest && { id: day.latest.batchId, modelId: day.latest.modelId, status: day.latest.statusLabel, outletTJ: day.latest.outletTJ },
             acceptedOutletTJ: day.held.lines ? day.held.outletTJ : null,
           })),
         };
@@ -61,7 +61,7 @@ export const assistant = {
       name: 'batch_status',
       kind: 'read',
       title: 'A batch',
-      description: 'One nomination batch by its number: its status, the file sent, when each step happened, and AGIG\'s errors if it was rejected.',
+      description: 'One nomination batch by its number: the workbook model it came from, its status, the file sent, when each step happened, and AGIG\'s errors if it was rejected.',
       input: { type: 'object', properties: { batchId: { type: 'integer', minimum: 1, description: 'The batch number, as the Submissions page shows it.' } }, required: ['batchId'] },
       run: async ({ app, user, input }) => {
         const detail = await batchDetail(app, user, input.batchId).catch((error) => {
@@ -72,6 +72,7 @@ export const assistant = {
         return {
           found: true,
           id: detail.batch.id,
+          modelId: detail.batch.modelId ?? null,
           status: detail.batch.statusLabel,
           gasDays: `${detail.batch.gasDayFrom} to ${detail.batch.gasDayTo}`,
           publishedBy: detail.batch.createdBy,

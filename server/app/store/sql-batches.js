@@ -20,6 +20,7 @@ export const mapBatch = (row) => ({
   validatedAt: timeOut(row.ValidatedAtUtc),
   approvedBy: row.ApprovedBy ?? null,
   approvedAt: timeOut(row.ApprovedAtUtc),
+  modelId: row.ModelId === null || row.ModelId === undefined ? null : String(row.ModelId),
 });
 
 const mapRow = (row) => ({
@@ -98,10 +99,10 @@ export function batchStore(pool, s) {
     async createBatch({ batch, rows, issues = [] }) {
       return inTransaction(pool, async (tx) => {
         const created = await query(tx, `INSERT ${s.nom}.Batch (Environment, Status, GasDayFrom, GasDayTo, SourceFile, SourceSha256,
-            ContentSha256, SupersedesBatchId, CreatedBy, CreatedAtUtc, ValidatedAtUtc, ApprovedBy, ApprovedAtUtc)
+            ContentSha256, SupersedesBatchId, CreatedBy, CreatedAtUtc, ValidatedAtUtc, ApprovedBy, ApprovedAtUtc, ModelId)
           OUTPUT inserted.*
           VALUES (@environment, @status, @gasDayFrom, @gasDayTo, @sourceFile, @sourceSha256, @contentSha256, @supersedesBatchId,
-            @createdBy, ISNULL(@createdAt, sysutcdatetime()), @validatedAt, @approvedBy, @approvedAt)`, {
+            @createdBy, ISNULL(@createdAt, sysutcdatetime()), @validatedAt, @approvedBy, @approvedAt, @modelId)`, {
           environment: [sql.VarChar(4), batch.environment],
           status: [sql.VarChar(20), batch.status],
           gasDayFrom: [sql.Date, dateIn(batch.gasDayFrom)],
@@ -115,6 +116,7 @@ export function batchStore(pool, s) {
           validatedAt: [sql.DateTime2(0), timeIn(batch.validatedAt)],
           approvedBy: [sql.NVarChar(100), batch.approvedBy ?? null],
           approvedAt: [sql.DateTime2(0), timeIn(batch.approvedAt)],
+          modelId: [sql.NVarChar(100), batch.modelId ?? null],
         });
         const record = mapBatch(created.recordset[0]);
 
