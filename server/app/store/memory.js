@@ -60,7 +60,7 @@ export function createMemoryStore({ clock = () => new Date() } = {}) {
     // Batches, their rows and the issues the worker's checks found
     async createBatch({ batch, rows: newRows, issues: newIssues = [] }) {
       const record = {
-        id: nextId('batch'), supersedesBatchId: null, validatedAt: null, approvedBy: null, approvedAt: null,
+        id: nextId('batch'), supersedesBatchId: null, validatedAt: null, approvedBy: null, approvedAt: null, modelId: null,
         ...copy(isoFields(batch)), createdAt: iso(batch.createdAt) ?? now(),
       };
       batches.push(record);
@@ -77,11 +77,24 @@ export function createMemoryStore({ clock = () => new Date() } = {}) {
       return copy(record);
     },
     async getBatch(id) { return copy(findBatch(id)) ?? null; },
-    async listBatches({ from = null, to = null, status = null, environment = null, limit = 200, ids = null } = {}) {
+    async listBatches({ from = null, to = null, status = null, environment = null, limit = 200, ids = null, modelId = null } = {}) {
       return batches
         .filter((batch) => overlaps(batch, from, to) && (!status || [].concat(status).includes(batch.status))
-          && (!environment || batch.environment === environment) && (!ids || ids.includes(batch.id)))
+          && (!environment || batch.environment === environment) && (!ids || ids.includes(batch.id))
+          && (!modelId || batch.modelId === modelId))
         .sort((a, b) => b.id - a.id).slice(0, limit).map(copy);
+    },
+    // Every model that has loaded a batch (in an environment), with how many and when it last did.
+    async listModels({ environment = null } = {}) {
+      const byModel = new Map();
+      for (const batch of batches) {
+        if (!batch.modelId || (environment && batch.environment !== environment)) continue;
+        const seen = byModel.get(batch.modelId) ?? { modelId: batch.modelId, batches: 0, lastLoadedAt: null };
+        seen.batches += 1;
+        if (!seen.lastLoadedAt || batch.createdAt > seen.lastLoadedAt) seen.lastLoadedAt = batch.createdAt;
+        byModel.set(batch.modelId, seen);
+      }
+      return [...byModel.values()].sort((a, b) => a.modelId.localeCompare(b.modelId));
     },
     // For each batch: its lines, inlet and outlet totals, the issues the checks found, and AGIG's error lines.
     async batchSummaries(batchIds) {

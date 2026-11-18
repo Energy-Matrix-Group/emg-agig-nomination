@@ -28,11 +28,21 @@ export function dayRows(gasDay, { kemerton = '12.500', spot = null } = {}) {
   return rows;
 }
 
+// One workbook model's own lines for a day: its own contract, in at Karratha and out at its own point, so two models
+// never share a line (as Eve's do not). `outletTJ` sets both, so the day balances.
+export function modelRows(gasDay, { contract, outlet = 'OKW-01', location = 'Alcoa Kwinana Station', outletTJ = '10.000' }) {
+  return [
+    line(gasDay, contract, 'Inlet', 'I1-01', 'KGP', outletTJ),
+    line(gasDay, contract, 'Outlet', outlet, location, outletTJ),
+  ];
+}
+
 let snapshot = 0;
+export const DEFAULT_MODEL = 'MODEL-MAIN';
 
 // The worker loads a snapshot and checks it: VALIDATED (then APPROVED, when approval is automatic) or
 // VALIDATION_FAILED, with what its checks found. `issues` are { line, rule, severity, message }, line 0-based.
-export async function loadBatch(store, rows, { status = 'APPROVED', issues = [], by = 'olive.ops@energymatrix.com.au', at = null, environment = 'NP', supersedes = null } = {}) {
+export async function loadBatch(store, rows, { status = 'APPROVED', issues = [], by = 'olive.ops@energymatrix.com.au', at = null, environment = 'NP', supersedes = null, modelId } = {}) {
   const days = rows.map((row) => row.gasDay).sort();
   snapshot += 1;
   const when = at ? new Date(at) : null;
@@ -42,6 +52,9 @@ export async function loadBatch(store, rows, { status = 'APPROVED', issues = [],
       sourceFile: `F:\\AGIG SFTP TEST\\Archive\\NOM_${by.split('@')[0]}_${String(snapshot).padStart(4, '0')}.xlsx`,
       sourceSha256: `${snapshot}`.padStart(64, 'a'), contentSha256: `${snapshot}`.padStart(64, 'c'), supersedesBatchId: supersedes,
       createdBy: by, createdAt: when, validatedAt: when, approvedBy: status === 'APPROVED' ? by : null, approvedAt: status === 'APPROVED' ? when : null,
+      // The workbook model that made the snapshot: every snapshot of one model carries the same id. One model unless
+      // a test says otherwise; `modelId: null` stands for a batch from before the column.
+      modelId: modelId === undefined ? DEFAULT_MODEL : modelId,
     },
     rows: rows.map((row, at2) => ({ ...row, csvLineNumber: at2 + 2 })),
     issues,
@@ -87,8 +100,8 @@ export async function answer(store, batch, file, { status = 'Success', errors = 
 }
 
 // Loads, sends and has AGIG accept a day in one go.
-export async function acceptedDay(store, rows, { at = new Date(), supersedes = null } = {}) {
-  const batch = await loadBatch(store, rows, { at, supersedes });
+export async function acceptedDay(store, rows, { at = new Date(), supersedes = null, modelId } = {}) {
+  const batch = await loadBatch(store, rows, { at, supersedes, modelId });
   const sent = new Date(new Date(at).getTime() + 2 * 60_000);
   const file = await buildFile(store, batch, { at: sent });
   await answer(store, batch, file, { at: new Date(sent.getTime() + 6 * 60_000) });

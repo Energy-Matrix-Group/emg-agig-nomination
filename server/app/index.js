@@ -42,17 +42,20 @@ export const assistant = {
       name: 'gas_day_status',
       kind: 'read',
       title: 'Gas Day status',
-      description: 'For yesterday to a week ahead: whether AGIG has accepted a nomination for each Gas Day, what is waiting, and when the cutoffs fall (times in UTC; AWST is UTC+8).',
-      input: { type: 'object', properties: {} },
-      run: async ({ app }) => {
-        const board = await gasDayBoard(app);
+      description: 'For today and the next 31 days: whether AGIG has accepted a nomination for each Gas Day, model by model (each workbook model sends its own files), what is waiting, and when the cutoffs fall (times in UTC; AWST is UTC+8). Give a model id to see only that model.',
+      input: { type: 'object', properties: { model: { type: 'string', maxLength: 100, description: 'A model id, to see only that model. Leave it out for every model.' } } },
+      run: async ({ app, input }) => {
+        const board = await gasDayBoard(app, { model: input?.model?.trim() || null });
         return {
           environment: board.environment,
           today: board.today,
           days: board.days.map((day) => ({
             gasDay: day.gasDay, status: day.label, colour: day.colour, initialCutoffUtc: day.initialCutoff, renominationCutoffUtc: day.renominationCutoff,
-            latestBatch: day.latest && { id: day.latest.batchId, status: day.latest.statusLabel, outletTJ: day.latest.outletTJ },
+            latestBatch: day.latest && { id: day.latest.batchId, modelId: day.latest.modelId, status: day.latest.statusLabel, outletTJ: day.latest.outletTJ },
             acceptedOutletTJ: day.held.lines ? day.held.outletTJ : null,
+            models: day.models.map((item) => ({ modelId: item.modelId, status: item.label, batchId: item.latest?.batchId ?? null })),
+            modelsWithNothingLoaded: day.nothingLoaded,
+            linesNominatedByTwoModels: day.overlaps,
           })),
         };
       },
@@ -61,7 +64,7 @@ export const assistant = {
       name: 'batch_status',
       kind: 'read',
       title: 'A batch',
-      description: 'One nomination batch by its number: its status, the file sent, when each step happened, and AGIG\'s errors if it was rejected.',
+      description: 'One nomination batch by its number: the workbook model it came from, its status, the file sent, when each step happened, and AGIG\'s errors if it was rejected.',
       input: { type: 'object', properties: { batchId: { type: 'integer', minimum: 1, description: 'The batch number, as the Submissions page shows it.' } }, required: ['batchId'] },
       run: async ({ app, user, input }) => {
         const detail = await batchDetail(app, user, input.batchId).catch((error) => {
@@ -72,6 +75,7 @@ export const assistant = {
         return {
           found: true,
           id: detail.batch.id,
+          modelId: detail.batch.modelId ?? null,
           status: detail.batch.statusLabel,
           gasDays: `${detail.batch.gasDayFrom} to ${detail.batch.gasDayTo}`,
           publishedBy: detail.batch.createdBy,

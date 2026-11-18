@@ -99,3 +99,26 @@ test('Joules can say how each Gas Day stands, what happened to a batch, and the 
     assert.deepEqual(await run('open_alerts'), { alerts: [] });
   });
 });
+
+test('every batch shows the workbook model it came from, and none for a batch from before the model id', async () => {
+  await withApp(async ({ ops, store, app }) => {
+    await addContracts(store);
+    const old = await acceptedDay(store, dayRows('2026-11-18'), { modelId: null });
+    const accepted = await acceptedDay(store, dayRows(TOMORROW), { modelId: 'GAS-MODEL 2026.11 v3' });
+    const waiting = await loadBatch(store, dayRows('2026-11-19'), { modelId: 'GAS-MODEL 2026.11 v4' });
+    await buildFile(store, waiting, { sent: false });
+
+    const { batches } = (await ops.call('/batches')).data;
+    assert.deepEqual(batches.map((batch) => [batch.id, batch.modelId]), [[waiting.id, 'GAS-MODEL 2026.11 v4'], [accepted.id, 'GAS-MODEL 2026.11 v3'], [old.id, null]]);
+    assert.equal((await ops.call(`/batches/${accepted.id}`)).data.batch.modelId, 'GAS-MODEL 2026.11 v3');
+    const { responses } = (await ops.call('/responses')).data;
+    assert.deepEqual(responses.map((response) => [response.batchId, response.modelId]).sort(), [[accepted.id, 'GAS-MODEL 2026.11 v3'], [old.id, null]].sort());
+    assert.deepEqual((await ops.call('/system')).data.waiting.map((file) => [file.batchId, file.modelId]), [[waiting.id, 'GAS-MODEL 2026.11 v4']]);
+    assert.equal((await ops.call('/board')).data.days.find((item) => item.gasDay === TOMORROW).latest.modelId, 'GAS-MODEL 2026.11 v3');
+
+    const user = { id: 'u', email: 'someone@energymatrix.com.au', displayName: 'Someone', role: null };
+    const run = (name, input = {}) => assistant.actions.find((action) => action.name === name).run({ app, user, input });
+    assert.equal((await run('batch_status', { batchId: accepted.id })).modelId, 'GAS-MODEL 2026.11 v3');
+    assert.equal((await run('gas_day_status')).days.find((item) => item.gasDay === '2026-11-19').latestBatch.modelId, 'GAS-MODEL 2026.11 v4');
+  });
+});

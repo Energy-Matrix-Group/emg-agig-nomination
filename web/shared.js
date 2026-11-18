@@ -119,6 +119,12 @@ export function badge(text, tone = 'navy') {
   return el('span', { class: tone === 'closed' ? 'emg-badge pill-closed' : `emg-badge emg-badge--${tone}` }, text);
 }
 
+// A batch's model id, as the workbook named it, cut short with its whole value in the tooltip if it is long; a dash
+// for a batch loaded before the worker recorded one.
+export function modelId(id) {
+  return id ? el('span', { class: 'model-id', title: id }, id) : el('span', { class: 'muted' }, '—');
+}
+
 export const statusBadge = (batch) => badge(batch.statusLabel ?? batch.status, STATUS_TONE[batch.status] ?? 'navy');
 
 export function table(headers, rows, { empty = 'Nothing here yet.', className = '' } = {}) {

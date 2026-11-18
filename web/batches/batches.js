@@ -1,13 +1,13 @@
-import { api, API, badge, button, el, fill, gasDay, linkRow, showMessage, startPage, statusBadge, table, took, when } from '/shared.js';
+import { api, API, badge, button, el, fill, gasDay, linkRow, modelId, showMessage, startPage, statusBadge, table, took, when } from '/shared.js';
 
-// Submissions: every batch the worker loaded, newest first, with its lines, totals, what the checks found, AGIG's
+// Submissions: every batch the worker loaded, newest first, with the workbook model it came from, its lines, totals, what the checks found, AGIG's
 // errors and where its file got to. A row opens the batch and its lines.
 
 const VIEWS = [['', 'All'], ['attention', 'Needs attention'], ['waiting', 'Waiting for AGIG']];
 const STATUSES = ['', 'IMPORTED', 'VALIDATION_FAILED', 'VALIDATED', 'APPROVED', 'BUILT', 'UPLOADING', 'UPLOADED', 'UPLOAD_UNCERTAIN', 'ACCEPTED', 'REJECTED', 'NO_RESPONSE', 'DUPLICATE', 'SUPERSEDED', 'CANCELLED'];
 const content = document.querySelector('[data-content]');
 const query = new URLSearchParams(window.location.search);
-const state = { view: query.get('view') ?? '', gasDay: query.get('gasDay') ?? '', status: query.get('status') ?? '' };
+const state = { view: query.get('view') ?? '', gasDay: query.get('gasDay') ?? '', model: query.get('model') ?? '', status: query.get('status') ?? '' };
 const results = el('div');
 const views = el('div', { class: 'segmented', role: 'group', 'aria-label': 'Show' });
 const dayInput = el('input', { type: 'text', inputmode: 'numeric', placeholder: 'yyyy-mm-dd', maxlength: '10', value: state.gasDay, 'aria-label': 'Gas Day, yyyy-mm-dd', onchange: (event) => {
@@ -20,17 +20,27 @@ const dayInput = el('input', { type: 'text', inputmode: 'numeric', placeholder: 
   state.gasDay = value;
   load();
 } });
+// Each workbook model sends its own batches (Eve, 18 November 2026): the list can show one model's.
+const model = el('select', { onchange: (event) => { state.model = event.target.value; load(); } }, el('option', { value: '' }, 'Any model'));
 const status = el('select', { onchange: (event) => { state.status = event.target.value; load(); } },
   STATUSES.map((value) => el('option', { value, selected: value === state.status }, value ? value.replaceAll('_', ' ').toLowerCase() : 'Any status')));
 
 const page = await startPage('batches');
 if (page) {
   fill(content,
-    el('div', { class: 'filters' }, views, el('label', {}, 'Gas Day', dayInput), el('label', {}, 'Status', status),
-      button('Clear', () => { Object.assign(state, { view: '', gasDay: '', status: '' }); dayInput.value = ''; status.value = ''; load(); }, { quiet: true, small: true })),
+    el('div', { class: 'filters' }, views, el('label', {}, 'Gas Day', dayInput), el('label', {}, 'Model', model), el('label', {}, 'Status', status),
+      button('Clear', () => { Object.assign(state, { view: '', gasDay: '', model: '', status: '' }); dayInput.value = ''; model.value = ''; status.value = ''; load(); }, { quiet: true, small: true })),
     results,
   );
-  await load();
+  await Promise.all([fillModels(), load()]);
+}
+
+// The models that have loaded a batch here, for the Model filter (and the one in the address, if it has none yet).
+async function fillModels() {
+  const result = await api(`${API}/models`);
+  const ids = result.ok ? result.data.models.map((item) => item.modelId) : [];
+  if (state.model && !ids.includes(state.model)) ids.push(state.model);
+  model.append(...ids.map((id) => el('option', { value: id, selected: id === state.model }, id)));
 }
 
 // What the worker's checks found and AGIG's error lines, side by side in one cell.
@@ -60,11 +70,12 @@ async function load() {
   }
   const { batches } = result.data;
   fill(results,
-    el('p', { class: 'muted small' }, `${batches.length} batch${batches.length === 1 ? '' : 'es'}${state.gasDay ? ` covering ${gasDay(state.gasDay)}` : ''}.`),
+    el('p', { class: 'muted small' }, `${batches.length} batch${batches.length === 1 ? '' : 'es'}${state.model ? ` from ${state.model}` : ''}${state.gasDay ? ` covering ${gasDay(state.gasDay)}` : ''}.`),
     table(
-      ['Batch', 'Gas Day', 'Status', { label: 'Lines', numeric: true }, { label: 'TJ out', numeric: true }, 'Problems', 'Loaded', 'By', 'Sent', 'Answered', { label: 'Took', numeric: true }],
+      ['Batch', 'Model', 'Gas Day', 'Status', { label: 'Lines', numeric: true }, { label: 'TJ out', numeric: true }, 'Problems', 'Loaded', 'By', 'Sent', 'Answered', { label: 'Took', numeric: true }],
       batches.map((batch) => linkRow(`/batch/?id=${batch.id}`, [
         el('td', {}, el('a', { href: `/batch/?id=${batch.id}` }, String(batch.id))),
+        el('td', {}, modelId(batch.modelId)),
         el('td', {}, batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`),
         el('td', {}, statusBadge(batch)),
         el('td', { class: 'num' }, String(batch.lines)),

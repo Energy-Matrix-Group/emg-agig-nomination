@@ -44,6 +44,24 @@ test('every page script parses as a module', async () => {
   }
 });
 
+// A page that calls a shared helper it never imported parses, then stops in the browser the moment it reaches the call
+// ("modelId is not defined"), which no server test sees. Every helper shared.js exports that a page calls must be in
+// its import from '/shared.js', or declared in the page itself.
+test('a page imports every shared helper it calls', async () => {
+  const shared = withoutComments(await readFile(path.join(web, 'shared.js'), 'utf8'));
+  const exported = new Set([
+    ...[...shared.matchAll(/^export (?:async )?(?:function|const|let) (\w+)/gm)].map(([, name]) => name),
+    ...[...shared.matchAll(/^export \{([^}]+)\} from/gm)].flatMap(([, names]) => names.split(',').map((name) => name.trim().split(/\s+as\s+/).pop())),
+  ]);
+  for (const file of (await pageFiles()).filter((name) => name.endsWith('.js') && !['shared.js', 'format.js'].includes(path.basename(name)))) {
+    const source = withoutComments(await readFile(file, 'utf8'));
+    const imported = new Set((/import \{([^}]+)\} from '\/shared\.js'/.exec(source)?.[1] ?? '').split(',').map((name) => name.trim()));
+    const declared = new Set([...source.matchAll(/(?:function|const|let) (\w+)/g)].map(([, name]) => name));
+    const missing = [...exported].filter((name) => new RegExp(`(?<![.\\w])${name}\\(`).test(source) && !imported.has(name) && !declared.has(name));
+    assert.deepEqual(missing, [], `${path.relative(web, file)} calls ${missing.join(', ')} without importing it from '/shared.js'`);
+  }
+});
+
 // A page module runs its top-level code in order, so a const or let declared after the first top-level await
 // does not exist yet when the code before it calls a function that uses it: the page stops with an error.
 test('a page script declares everything before its first top-level await', async () => {

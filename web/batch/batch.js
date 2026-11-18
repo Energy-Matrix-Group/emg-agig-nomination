@@ -1,4 +1,4 @@
-import { api, API, badge, el, fill, gasDay, panel, showMessage, startPage, statusBadge, table, when } from '/shared.js';
+import { api, API, badge, el, fill, gasDay, modelId, panel, showMessage, startPage, statusBadge, table, when } from '/shared.js';
 
 // One batch, its lines first: each line as it went to AGIG, with what the worker's checks found and AGIG's errors
 // pinned to it. Then the totals for each Gas Day, the timeline, how it changes what AGIG held (the design's
@@ -46,7 +46,7 @@ async function draw() {
   const { batch } = detail;
   document.title = `Batch ${batch.id} — AGIG Nominations — EMG`;
   document.querySelector('[data-title]').textContent = `Batch ${batch.id}`;
-  document.querySelector('[data-lede]').replaceChildren(statusBadge(batch), ` ${batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`} · ${detail.rows.length} lines · ${batch.environment}`);
+  document.querySelector('[data-lede]').replaceChildren(statusBadge(batch), ` ${batch.gasDayFrom === batch.gasDayTo ? gasDay(batch.gasDayFrom) : `${gasDay(batch.gasDayFrom)} to ${gasDay(batch.gasDayTo)}`} · ${batch.modelId ? `Model ${batch.modelId} · ` : ''}${detail.rows.length} lines · ${batch.environment}`);
   const [tone, words] = WHERE_IT_IS[batch.status] ?? ['note', ''];
   const problems = detail.rows.filter((row) => row.issues.length || row.agigErrors.length).length;
 
@@ -55,6 +55,12 @@ async function draw() {
       detail.file ? el('a', { class: 'emg-btn emg-btn--quiet emg-btn--sm', href: `${API}/batches/${batch.id}/file`, download: detail.file.fileName }, 'Download the SHNOM file') : null),
     words ? el('p', { class: tone === 'bad' ? 'message' : `emg-callout emg-callout--${tone}` }, words) : null,
     facts(detail),
+    // One block inside the callout: the platform lays a callout's children side by side.
+    detail.overlaps.length ? el('div', { class: 'emg-callout emg-callout--warn' }, el('div', { class: 'overlap-note' },
+      el('p', {}, el('strong', {}, `${detail.overlaps.length} line${detail.overlaps.length === 1 ? ' is' : 's are'} also nominated by another model. `),
+        'AGIG keeps whichever file arrives later, so one model\'s number replaces the other\'s. Each model should nominate lines of its own.'),
+      el('ul', {}, detail.overlaps.map((overlap) => el('li', {}, `${gasDay(overlap.gasDay)} · ${overlap.designation} (${overlap.contract}, ${overlap.nomType}): `,
+        overlap.modelId ? `model ${overlap.modelId}, ` : '', el('a', { href: `/batch/?id=${overlap.batchId}` }, `Batch ${overlap.batchId}`)))))) : null,
     el('section', { class: 'panel' },
       el('div', { class: 'emg-section-head' },
         el('h2', { class: 'section-label' }, 'Lines'),
@@ -67,7 +73,7 @@ async function draw() {
       detail.unpinnedErrors.length ? el('ul', { class: 'issues' }, detail.unpinnedErrors.map((error) => el('li', { class: 'check-error' }, `AGIG, line ${error.lineNumber}: ${error.errorCode} ${error.meaning ?? error.errorDescription ?? ''}`))) : null) : null,
     panel('What happened', el('ol', { class: 'timeline' }, detail.timeline.map((step) => el('li', { class: step.at ? 'done' : null },
       el('strong', {}, step.step), el('span', {}, step.at ? when(step.at) : 'Not yet'), step.by ? el('span', {}, step.by) : null)))),
-    panel('Change from what AGIG held', detail.changes.length ? changesTable(detail.changes) : el('p', { class: 'muted' }, 'No change: AGIG already held these numbers.')),
+    panel(batch.modelId ? `Change from what AGIG held for ${batch.modelId}` : 'Change from what AGIG held', detail.changes.length ? changesTable(detail.changes) : el('p', { class: 'muted' }, 'No change: AGIG already held these numbers.')),
     detail.responses.length ? panel('AGIG\'s answers', responsesTable(detail.responses)) : null,
   );
   drawRows();
@@ -78,6 +84,7 @@ function facts({ batch, file, supersededBy }) {
   return el('dl', { class: 'facts' },
     item('Loaded', when(batch.createdAt), el('br'), el('span', { class: 'muted small' }, batch.createdBy)),
     item('Approved', batch.approvedAt ? when(batch.approvedAt) : '—', batch.approvedBy ? [el('br'), el('span', { class: 'muted small' }, batch.approvedBy)] : ''),
+    item('Model ID', modelId(batch.modelId)),
     item('From the workbook snapshot', el('span', { class: 'mono small' }, batch.sourceFile)),
     item('File', file ? el('span', { class: 'mono small' }, file.fileName) : '—', file?.lastError ? [el('br'), el('span', { class: 'muted small' }, file.lastError)] : ''),
     batch.supersedesBatchId ? item('Replaces', el('a', { href: `/batch/?id=${batch.supersedesBatchId}` }, `Batch ${batch.supersedesBatchId}`)) : null,

@@ -15,7 +15,7 @@ import * as appModule from '../server/app/index.js';
 import { addDays, awstToday, renominationCutoff } from '../server/app/time.js';
 import { createAppServer } from '../server/platform/create-server.js';
 import { createFakePortal } from '../test/platform/support/fake-portal.js';
-import { acceptedDay, addContracts, answer, buildFile, dayRows, loadBatch, raiseAlert } from '../test/worker.js';
+import { acceptedDay, addContracts, answer, buildFile, loadBatch, modelRows, raiseAlert } from '../test/worker.js';
 
 const PORTAL_PORT = 4000;
 const APP_PORT = 4001;
@@ -78,26 +78,64 @@ async function seed() {
   const ago = (minutes) => new Date(Date.now() - minutes * 60_000);
 
   await addContracts(store, { from: day(-60) });
-  await acceptedDay(store, dayRows(day(0)), { at: ago(26 * 60) });
-  const tomorrow = await acceptedDay(store, dayRows(day(1), { spot: '2.500' }), { at: ago(5 * 60) });
-  const newer = await loadBatch(store, dayRows(day(1), { kemerton: '11.750' }), { at: ago(20), supersedes: tomorrow.id });
-  await buildFile(store, newer, { sent: false, at: ago(19) });
 
-  const rejected = await loadBatch(store, dayRows(day(2), { kemerton: '12.000' }), {
-    at: ago(4 * 60), issues: [{ line: 1, rule: 'RENOM', severity: 'Warning', message: 'Line 2: after 14:00 the day before, so AGIG treats it as a renomination.' }],
+  // Eight workbook models, each nominating its own contract at its own outlet (Eve's models never share a line).
+  const MODELS = [
+    ['MODEL-COCKBURN', 'OKW-04', 'Cockburn Power Station incl NewGen', '9.500'],
+    ['MODEL-KEMERTON', 'OS5-01', 'Kemerton', '12.500'],
+    ['MODEL-KWINANA', 'OKW-01', 'Alcoa Kwinana Station', '6.000'],
+    ['MODEL-NEERABUP', 'OP10-01', 'Neerabup PS', '4.250'],
+    ['MODEL-NORTH-METRO', 'NGP-NM', 'North Metro', '3.750'],
+    ['MODEL-PINJARRA', 'OS2-01', 'Alcoa Pinjarra', '7.250'],
+    ['MODEL-ROCKINGHAM', 'NGP-RO', 'Rockingham SN', '2.000'],
+    ['MODEL-SOUTH-METRO', 'NGP-SM', 'South Metro', '5.500'],
+  ].map(([modelId, outlet, location, outletTJ]) => ({ modelId, outlet, location, outletTJ, contract: `Shipper1_${modelId.slice(6).replaceAll('-', '')}` }));
+  const of = (id) => MODELS.find((item) => item.modelId === id);
+  for (const item of MODELS) {
+    await store.createContract({ code: item.contract, type: 'Transport', pipelineCode: 'DBNGP', startDate: day(-60), endDate: null, capacityTJ: '15', serviceType: 'T1', subServiceType: null, isActive: true });
+  }
+  const rowsFor = (item, gasDay, outletTJ = item.outletTJ) => modelRows(gasDay, { ...item, outletTJ });
+  const accept = (item, gasDay, minutesAgo) => acceptedDay(store, rowsFor(item, gasDay), { at: ago(minutesAgo), modelId: item.modelId });
+
+  // Yesterday and today: every model accepted.
+  for (const [index, item] of MODELS.entries()) {
+    await accept(item, day(-1), 50 * 60 - index * 7);
+    await accept(item, day(0), 26 * 60 - index * 7);
+  }
+
+  // Tomorrow: six accepted; Cockburn has newer numbers not sent yet; North Metro's file is with AGIG.
+  for (const [index, item] of MODELS.entries()) {
+    if (item.modelId !== 'MODEL-NORTH-METRO') await accept(item, day(1), 6 * 60 - index * 9);
+  }
+  const cockburnAccepted = (await store.listBatches({ modelId: 'MODEL-COCKBURN', from: day(1), to: day(1) }))[0];
+  const newer = await loadBatch(store, rowsFor(of('MODEL-COCKBURN'), day(1), '10.250'), { at: ago(20), modelId: 'MODEL-COCKBURN', supersedes: cockburnAccepted.id });
+  await buildFile(store, newer, { sent: false, at: ago(19) });
+  const northMetro = await loadBatch(store, rowsFor(of('MODEL-NORTH-METRO'), day(1)), { at: ago(14), modelId: 'MODEL-NORTH-METRO' });
+  await buildFile(store, northMetro, { at: ago(12) });
+
+  // The day after: Kemerton rejected by AGIG, South Metro failed the worker's checks, Neerabup has loaded nothing.
+  for (const [index, item] of MODELS.entries()) {
+    if (!['MODEL-KEMERTON', 'MODEL-SOUTH-METRO', 'MODEL-NEERABUP'].includes(item.modelId)) await accept(item, day(2), 5 * 60 - index * 6);
+  }
+  const rejected = await loadBatch(store, rowsFor(of('MODEL-KEMERTON'), day(2)), {
+    at: ago(4 * 60), modelId: 'MODEL-KEMERTON', issues: [{ line: 1, rule: 'RENOM', severity: 'Warning', message: 'Line 3: after 14:00 the day before, so AGIG treats it as a renomination.' }],
   });
   const rejectedFile = await buildFile(store, rejected, { at: ago(4 * 60 - 3) });
   await answer(store, rejected, rejectedFile, { status: 'Failure', errors: [[3, '507', 'Invalid Outlet Point (combination of Contract: Inlet Designation: Pipeline: Customer)']], at: ago(4 * 60 - 9) });
-  await raiseAlert(store, 'REJECTED', 'Critical', `AGIG rejected batch ${rejected.id} (${rejectedFile.fileName}): errors 507. Fix the lines and publish again.`, { entityType: 'Batch', entityId: rejected.id, at: ago(4 * 60 - 9) });
-
-  const waiting = await loadBatch(store, dayRows(day(3)), { at: ago(12) });
-  await buildFile(store, waiting, { at: ago(10) });
-
-  await loadBatch(store, dayRows(day(4), { kemerton: '19.000' }), {
-    status: 'VALIDATION_FAILED', at: ago(90),
-    issues: [{ line: null, rule: '522', severity: 'Error', message: `Shipper1_FH01 on ${day(4)}: outlets total 26.250 TJ, more than the contracted 25.000 TJ.` }, { line: 1, rule: '522', severity: 'Error', message: 'Line 2: part of the outlets above capacity.' }],
+  await raiseAlert(store, 'REJECTED', 'Critical', `AGIG rejected batch ${rejected.id} (MODEL-KEMERTON, ${rejectedFile.fileName}): errors 507. Fix the lines and publish again.`, { entityType: 'Batch', entityId: rejected.id, at: ago(4 * 60 - 9) });
+  await loadBatch(store, rowsFor(of('MODEL-SOUTH-METRO'), day(2), '16.000'), {
+    status: 'VALIDATION_FAILED', at: ago(90), modelId: 'MODEL-SOUTH-METRO',
+    issues: [{ line: null, rule: '522', severity: 'Error', message: `Shipper1_SOUTHMETRO on ${day(2)}: outlets total 16.000 TJ, more than the contracted 15.000 TJ.` }, { line: 1, rule: '522', severity: 'Error', message: 'Line 3: the outlet above capacity.' }],
   });
-  await raiseAlert(store, 'STALE', 'Warning', `Batch ${newer.id} for Gas Day ${day(1)} is not sent yet. AGIG still holds the earlier numbers.`, { entityType: 'Batch', entityId: newer.id, at: ago(15) });
+
+  // Three days out: three models have started, and Pinjarra's file carries a Kwinana line by mistake.
+  await accept(of('MODEL-KWINANA'), day(3), 3 * 60);
+  const rockingham = await loadBatch(store, rowsFor(of('MODEL-ROCKINGHAM'), day(3)), { at: ago(11), modelId: 'MODEL-ROCKINGHAM' });
+  await buildFile(store, rockingham, { at: ago(9) });
+  const pinjarra = await loadBatch(store, [...rowsFor(of('MODEL-PINJARRA'), day(3)), rowsFor(of('MODEL-KWINANA'), day(3))[1]], { at: ago(30), modelId: 'MODEL-PINJARRA' });
+  await buildFile(store, pinjarra, { sent: false, at: ago(28) });
+
+  await raiseAlert(store, 'STALE', 'Warning', `Batch ${newer.id} (MODEL-COCKBURN) for Gas Day ${day(1)} is not sent yet. AGIG still holds the earlier numbers.`, { entityType: 'Batch', entityId: newer.id, at: ago(15) });
   await raiseAlert(store, 'KEY_EXPIRY', 'Info', 'AGIG\'s SFTP key expires in 40 days. Ask AGIG for a new one.', { at: ago(60) });
 }
 
@@ -109,7 +147,7 @@ try {
   console.log('');
   console.log(`  AGIG Nominations is running: open ${APP}`);
   console.log(`  You are ${person.displayName}${person.role ? ', an Ops Trader' : ', with no company role (look, but not settle alerts)'}.`);
-  console.log(`  ${args.has('--empty') ? 'No sample data.' : 'Sample data: accepted days, a rejected one, one waiting for AGIG, newer numbers not sent, one that failed the checks, and alerts.'}`);
+  console.log(`  ${args.has('--empty') ? 'No sample data.' : 'Sample data: eight workbook models over the week: accepted days, one rejected, one waiting for AGIG, newer numbers not sent, one that failed the checks, a model with nothing loaded, a line two models share, and alerts.'}`);
   console.log('  Everything is in memory and goes when you stop it: Ctrl+C.');
   console.log('');
 } catch (error) {
