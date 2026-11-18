@@ -49,6 +49,11 @@ export async function storeBehaviour(store) {
   assert.deepEqual((await store.listBatches({ environment: 'PROD' })), []);
   assert.deepEqual((await store.listBatches({ ids: [first.id] })).map((item) => item.supersedesBatchId), [null]);
   assert.deepEqual([(await store.getBatch(first.id)).modelId, second.modelId], ['GAS-MODEL 2026.11 v3', null], 'a batch from before the model id has none');
+  const third = await store.createBatch({ batch: batch({ modelId: 'GAS-MODEL 2026.11 v3', createdAt: new Date('2026-11-16T03:00:00Z') }), rows: [] });
+  await store.createBatch({ batch: batch({ modelId: 'KWINANA', environment: 'PROD', createdAt: new Date('2026-11-16T04:00:00Z') }), rows: [] });
+  assert.deepEqual((await store.listBatches({ modelId: 'GAS-MODEL 2026.11 v3' })).map((item) => item.id), [third.id, first.id]);
+  assert.deepEqual(await store.listModels({ environment: 'NP' }), [{ modelId: 'GAS-MODEL 2026.11 v3', batches: 2, lastLoadedAt: '2026-11-16T03:00:00.000Z' }], 'a batch with no model id is not a model');
+  assert.deepEqual((await store.listModels()).map((model) => model.modelId), ['GAS-MODEL 2026.11 v3', 'KWINANA']);
 
   // Files: the bytes come back only when asked for.
   const body = Buffer.from('Gas Day,Shipper\r\n2026-11-17,Shipper1\r\n');

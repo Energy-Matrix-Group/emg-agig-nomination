@@ -49,6 +49,9 @@
    whole value is in the tooltip). */
 .model-id { display: inline-block; max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; font-weight: 600; color: var(--emg-heading); }
 
+.overlap-note p { margin: 0; }
+.overlap-note ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+
 /* ---------- The Gas Day board ---------- */
 /* The open alerts: one line each, the badges in a column of their own so the messages line up. */
 .alerts-banner {
@@ -86,6 +89,22 @@ a.day-link:hover { text-decoration: underline; }
 .cutoff.is-close .countdown { color: var(--emg-bad); }
 .cutoff.is-closed { color: var(--emg-text-faint); }
 
+/* Every model on show: a day's line opens to one line per model. The day's name is the button that opens it. */
+.board-tools { align-items: end; }
+/* button.day-toggle outranks the platform's button and button:hover, which would paint it as a primary button. */
+button.day-toggle, button.day-toggle:hover, button.day-toggle:active { display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2rem; padding: 0; border: 0; background: none; color: var(--emg-heading); font: inherit; font-weight: 700; letter-spacing: normal; transform: none; cursor: pointer; }
+button.day-toggle:hover { text-decoration: underline; }
+button.day-toggle:focus-visible { outline: 2px solid var(--emg-focus, var(--emg-accent)); outline-offset: 3px; }
+.day-toggle .chevron { width: 0.45rem; height: 0.45rem; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform 0.15s; }
+.day-toggle[aria-expanded="true"] .chevron { transform: rotate(45deg); }
+.model-counts { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
+.board-rows tr.is-open td { border-bottom-color: transparent; }
+.board-rows .model-row td { background: var(--emg-raised); font-size: 0.88rem; padding-top: 0.45rem; padding-bottom: 0.45rem; }
+.board-rows .model-row td:first-child { padding-left: 2.6rem; box-shadow: inset 6px 0 0 var(--emg-raised), inset 9px 0 0 var(--tone, var(--emg-line)); }
+.board-rows .model-row--quiet { color: var(--emg-text-muted); }
+.board-rows .model-row--overlap td { white-space: normal; color: var(--emg-warn); background: var(--emg-warn-bg); }
+@media (prefers-reduced-motion: reduce) { .day-toggle .chevron { transition: none; } }
+
 /* On a phone each Gas Day is a small card, so nothing runs off the side: the day and what AGIG holds, then its
    status, then its next cutoff. The headings stay for a screen reader. */
 @media (max-width: 640px) {
@@ -100,8 +119,10 @@ a.day-link:hover { text-decoration: underline; }
   .board-rows td, .board-rows td:first-child { display: block; padding: 0; border: 0; box-shadow: none; }
   .board-rows td.num { grid-column: 2; grid-row: 1; }
   .board-rows td.num::before { content: 'AGIG holds '; color: var(--emg-text-muted); font-size: 0.78rem; }
-  .board-rows td:nth-child(2), .board-rows td.cutoff { grid-column: 1 / -1; }
+  .board-rows td:nth-child(2), .board-rows td:nth-child(3), .board-rows td[colspan] { grid-column: 1 / -1; }
   .board-rows .emg-badge { white-space: normal; }
+  .board-rows .model-row { padding-left: 2rem; background: var(--emg-raised); box-shadow: inset 6px 0 0 var(--emg-raised), inset 9px 0 0 var(--tone, var(--emg-line)); }
+  .board-rows .model-row td, .board-rows .model-row td:first-child { padding: 0; background: none; box-shadow: none; }
 }
 
 /* ---------- Submissions ---------- */

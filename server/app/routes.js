@@ -1,6 +1,6 @@
 import { actorOf, canOperate, requireOperator } from './access.js';
 import { gasDayBoard } from './board.js';
-import { batchDetail, listBatches, listResponses, systemView } from './detail.js';
+import { batchDetail, listBatches, listResponses, modelParam, systemView } from './detail.js';
 import { httpError, readJson, sendFile, sendJson } from '../platform/kit.js';
 import { awstToday } from './time.js';
 
@@ -16,6 +16,7 @@ function idOf(params, name = 'id') {
 
 const ok = (res, body) => sendJson(res, 200, body);
 const query = (req) => new URL(req.url, 'http://x').searchParams;
+
 
 async function session({ res, user, app }) {
   ok(res, {
@@ -42,7 +43,8 @@ export function createRoutes(prefix = PREFIX) {
   const route = (method, path, handler) => ({ method, path: `${prefix}${path}`, handler, auth: true });
   return [
     route('GET', '/session', session),
-    route('GET', '/board', async ({ res, app }) => ok(res, await gasDayBoard(app))),
+    route('GET', '/board', async ({ req, res, app }) => ok(res, await gasDayBoard(app, { model: modelParam(query(req)) }))),
+    route('GET', '/models', async ({ res, app }) => ok(res, { models: await app.store.listModels({ environment: app.settings.environment }) })),
     route('GET', '/reference', async ({ res, app }) => {
       const [pipelines, contracts, designations, errorCodes, fileTemplate] = await Promise.all([
         app.store.listPipelines(), app.store.listContracts(), app.store.listDesignations(), app.store.listErrorCodes(), app.store.listFileTemplate(),

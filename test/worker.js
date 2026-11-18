@@ -28,7 +28,17 @@ export function dayRows(gasDay, { kemerton = '12.500', spot = null } = {}) {
   return rows;
 }
 
+// One workbook model's own lines for a day: its own contract, in at Karratha and out at its own point, so two models
+// never share a line (as Eve's do not). `outletTJ` sets both, so the day balances.
+export function modelRows(gasDay, { contract, outlet = 'OKW-01', location = 'Alcoa Kwinana Station', outletTJ = '10.000' }) {
+  return [
+    line(gasDay, contract, 'Inlet', 'I1-01', 'KGP', outletTJ),
+    line(gasDay, contract, 'Outlet', outlet, location, outletTJ),
+  ];
+}
+
 let snapshot = 0;
+export const DEFAULT_MODEL = 'MODEL-MAIN';
 
 // The worker loads a snapshot and checks it: VALIDATED (then APPROVED, when approval is automatic) or
 // VALIDATION_FAILED, with what its checks found. `issues` are { line, rule, severity, message }, line 0-based.
@@ -42,8 +52,9 @@ export async function loadBatch(store, rows, { status = 'APPROVED', issues = [],
       sourceFile: `F:\\AGIG SFTP TEST\\Archive\\NOM_${by.split('@')[0]}_${String(snapshot).padStart(4, '0')}.xlsx`,
       sourceSha256: `${snapshot}`.padStart(64, 'a'), contentSha256: `${snapshot}`.padStart(64, 'c'), supersedesBatchId: supersedes,
       createdBy: by, createdAt: when, validatedAt: when, approvedBy: status === 'APPROVED' ? by : null, approvedAt: status === 'APPROVED' ? when : null,
-      // Each snapshot names the workbook model that made it; `modelId: null` stands for a batch from before the column.
-      modelId: modelId === undefined ? `MODEL-${String(snapshot).padStart(4, '0')}` : modelId,
+      // The workbook model that made the snapshot: every snapshot of one model carries the same id. One model unless
+      // a test says otherwise; `modelId: null` stands for a batch from before the column.
+      modelId: modelId === undefined ? DEFAULT_MODEL : modelId,
     },
     rows: rows.map((row, at2) => ({ ...row, csvLineNumber: at2 + 2 })),
     issues,

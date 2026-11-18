@@ -1,12 +1,19 @@
-import { acceptedLines, latestFiles, lineKey } from './board.js';
+import { acceptedLines, latestFiles, lineKey, modelOf } from './board.js';
 import { httpError } from '../platform/kit.js';
 import { formatMilli, toMilli } from './quantity.js';
-import { IN_FLIGHT, NEEDS_ATTENTION, PENDING, STATUS_LABELS } from './statuses.js';
+import { IN_FLIGHT, NEEDS_ATTENTION, PENDING, SET_ASIDE, STATUS_LABELS } from './statuses.js';
 import { readGasDay } from './time.js';
 
 // What the pages show about batches, responses and the system. The app only reads what the design's worker
 // wrote. Stored rows are never sent as they are: each goes through a function here, so the shape is the one
 // API.md shows.
+
+// A model id from the query: text, up to the 100 characters the column holds; none when empty.
+export function modelParam(params) {
+  const model = (params.get('model') ?? '').trim();
+  if (model.length > 100) throw httpError(400, 'model is a model id, up to 100 characters.');
+  return model || null;
+}
 
 export function presentBatch(batch) {
   return { ...batch, statusLabel: STATUS_LABELS[batch.status] ?? batch.status };
@@ -34,7 +41,7 @@ export async function listBatches(app, query) {
   if (status && !STATUS_LABELS[status]) throw httpError(400, 'That is not a batch status.');
   const limit = Math.min(Math.max(Number.parseInt(query.get('limit') ?? '100', 10) || 100, 1), 500);
   const statuses = status ?? (view === 'attention' ? NEEDS_ATTENTION : view === 'waiting' ? [...PENDING, ...IN_FLIGHT] : null);
-  const batches = await app.store.listBatches({ from: gasDay, to: gasDay, status: statuses, environment: app.settings.environment, limit });
+  const batches = await app.store.listBatches({ from: gasDay, to: gasDay, status: statuses, environment: app.settings.environment, limit, modelId: modelParam(query) });
   const ids = batches.map((batch) => batch.id);
   const [files, summaries] = await Promise.all([app.store.listFiles({ batchIds: ids }), app.store.batchSummaries(ids)]);
   const fileOf = latestFiles(files);
@@ -95,21 +102,28 @@ export async function batchDetail(app, user, id) {
       ['Sent to AGIG', file?.uploadedAt, null],
       ['AGIG answered', file?.respondedAt, null],
     ].map(([step, at, by]) => ({ step, at: at ?? null, by })),
-    changes: await changesFromAccepted(app, batch, rows),
-    supersededBy: (await app.store.listBatches({ from: batch.gasDayFrom, to: batch.gasDayTo, environment: batch.environment, limit: 200 }))
-      .filter((other) => other.supersedesBatchId === id).map((other) => other.id),
+    ...await againstOthers(app, batch, rows),
   };
 }
 
-// How this batch differs from what AGIG held before it, line by line: the design's "Change view".
-async function changesFromAccepted(app, batch, rows) {
-  const others = await app.store.listBatches({ from: batch.gasDayFrom, to: batch.gasDayTo, environment: batch.environment, limit: 500 });
-  const earlier = others.filter((other) => other.id < batch.id);
-  const ids = earlier.map((other) => other.id);
+// The batch beside the others for its Gas Days:
+// - `changes`: how it differs from what AGIG held for its model before it, line by line (the design's "Change
+//   view"). Only its own model's batches count: each model sends its own files on its own lines, and AGIG replaces
+//   only the lines a file carries (Eve, 18 November 2026), so another model's lines are not "removed" by this one.
+// - `overlaps`: its lines that another model's latest batch also nominates for the same day. Eve's models never
+//   should; if two do, AGIG keeps whichever file arrives later.
+// - `supersededBy`: the batches that replace it.
+async function againstOthers(app, batch, rows) {
+  const others = (await app.store.listBatches({ from: batch.gasDayFrom, to: batch.gasDayTo, environment: batch.environment, limit: 500 }))
+    .filter((other) => other.id !== batch.id);
+  const earlier = others.filter((other) => other.id < batch.id && modelOf(other) === modelOf(batch));
+  const rivals = others.filter((other) => modelOf(other) !== modelOf(batch) && !SET_ASIDE.includes(other.status));
+  const ids = [...new Set([...earlier, ...rivals].map((other) => other.id))];
   const [files, otherRows] = await Promise.all([app.store.listFiles({ batchIds: ids }), app.store.listRows(ids)]);
   const filesByBatch = latestFiles(files);
   const rowsByBatch = groupBy(otherRows, 'batchId');
   const changes = [];
+  const overlaps = [];
   for (const day of [...new Set(rows.map((row) => row.gasDay))].sort()) {
     const before = acceptedLines(earlier, filesByBatch, rowsByBatch, day);
     const after = new Map(rows.filter((row) => row.gasDay === day).map((row) => [lineKey(row), row]));
@@ -127,8 +141,19 @@ async function changesFromAccepted(app, batch, rows) {
         change: formatMilli((nowMilli ?? 0) - (wasMilli ?? 0)),
       });
     }
+    // Each other model's latest batch for the day (newest first, as listBatches gives them).
+    const latestOf = new Map();
+    for (const other of rivals) {
+      if (other.gasDayFrom <= day && day <= other.gasDayTo && !latestOf.has(modelOf(other))) latestOf.set(modelOf(other), other);
+    }
+    for (const [modelId, other] of latestOf) {
+      for (const row of rowsByBatch.get(other.id) ?? []) {
+        if (row.gasDay !== day || !after.has(lineKey(row))) continue;
+        overlaps.push({ gasDay: day, contract: row.contract, nomType: row.nomType, designation: row.designation, modelId, batchId: other.id });
+      }
+    }
   }
-  return changes;
+  return { changes, overlaps, supersededBy: others.filter((other) => other.supersedesBatchId === batch.id).map((other) => other.id) };
 }
 
 export async function listResponses(app) {

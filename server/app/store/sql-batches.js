@@ -158,18 +158,28 @@ export function batchStore(pool, s) {
       const result = await query(pool, `SELECT * FROM ${s.nom}.Batch WHERE BatchId = @id`, { id: [sql.Int, id] });
       return result.recordset[0] ? mapBatch(result.recordset[0]) : null;
     },
-    async listBatches({ from = null, to = null, status = null, environment = null, limit = 200, ids = null } = {}) {
+    async listBatches({ from = null, to = null, status = null, environment = null, limit = 200, ids = null, modelId = null } = {}) {
       const statuses = status ? inList('status', sql.VarChar(20), [].concat(status)) : null;
       const idList = ids ? inList('id', sql.Int, ids) : null;
       const result = await query(pool, `SELECT TOP (@limit) * FROM ${s.nom}.Batch
         WHERE (@from IS NULL OR GasDayTo >= @from) AND (@to IS NULL OR GasDayFrom <= @to)
           AND (@environment IS NULL OR Environment = @environment)
+          AND (@modelId IS NULL OR CONVERT(nvarchar(100), ModelId) = @modelId)
           ${statuses ? `AND Status IN (${statuses.text})` : ''} ${idList ? `AND BatchId IN (${idList.text})` : ''}
         ORDER BY BatchId DESC`, {
         limit: [sql.Int, limit], from: [sql.Date, dateIn(from)], to: [sql.Date, dateIn(to)],
-        environment: [sql.VarChar(4), environment], ...(statuses?.params ?? {}), ...(idList?.params ?? {}),
+        environment: [sql.VarChar(4), environment], modelId: [sql.NVarChar(100), modelId || null],
+        ...(statuses?.params ?? {}), ...(idList?.params ?? {}),
       });
       return result.recordset.map(mapBatch);
+    },
+    // Every model that has loaded a batch (in an environment), with how many and when it last did. The model id is
+    // compared and grouped as text, whatever its type in the database.
+    async listModels({ environment = null } = {}) {
+      const result = await query(pool, `SELECT CONVERT(nvarchar(100), ModelId) AS ModelId, COUNT(*) AS Batches, MAX(CreatedAtUtc) AS LastLoadedAtUtc
+        FROM ${s.nom}.Batch WHERE ModelId IS NOT NULL AND (@environment IS NULL OR Environment = @environment)
+        GROUP BY CONVERT(nvarchar(100), ModelId) ORDER BY ModelId`, { environment: [sql.VarChar(4), environment] });
+      return result.recordset.map((row) => ({ modelId: row.ModelId, batches: row.Batches, lastLoadedAt: timeOut(row.LastLoadedAtUtc) }));
     },
     // For each batch: its lines, inlet and outlet totals, the issues the checks found, and AGIG's error lines.
     async batchSummaries(batchIds) {
