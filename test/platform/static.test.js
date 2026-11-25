@@ -311,6 +311,23 @@ test('the layer adds the bell to every page, the portal\'s and an app\'s, once, 
   assert.equal(withPlatformLayer(own).toString(), own, 'a page that loads it itself is left alone');
 });
 
+test('an app adds the bell only when it can ask the portal for it: with PORTAL_URL and PORTAL_DIRECTORY_TOKEN (1.8.2)', async () => {
+  // Without the token every page's request for the list would be an error (a 503 in the browser's console, and a failed page
+  // in an app's browser tests), so an app that is not set up for it has no bell at all.
+  for (const [env, has] of [[{ PORTAL_DIRECTORY_TOKEN: 'directory-token-for-tests' }, true], [{}, false]]) {
+    await withUi(STATIC, async ({ get }) => {
+      for (const where of ['/', '/docs/']) {
+        const page = await (await get(where)).text();
+        assert.equal(page.includes(BELL_SCRIPT), has, `${where} ${has ? 'has' : 'has no'} bell with ${JSON.stringify(Object.keys(env))}`);
+        assert.equal(page.includes(ASSISTANT_SCRIPT), true, 'Joules is there either way');
+      }
+    }, { env });
+    await withUi(SPA, async ({ get }) => {
+      assert.equal((await (await get('/tickets/42')).text()).includes(BELL_SCRIPT), has, 'a built UI\'s deep link too');
+    }, { env });
+  }
+});
+
 test('only pages are changed, and they stay correctly sized, revalidated and compressible', async () => {
   await withUi(STATIC, async ({ get }) => {
     const script = await get('/platform/api.js');

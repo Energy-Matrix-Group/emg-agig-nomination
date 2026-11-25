@@ -77,8 +77,10 @@ export function withPlatformLayer(html, { assistant = false, bell = true } = {})
 //   spa             answer an unknown path with no file extension with index.html, so the UI's router handles it
 //   signInRedirect  (req, url) => address | null. Called for every HTML page; an address sends the browser there.
 //   assistant       true on an app: every page gets Joules (web/platform/assistant.js). The portal leaves it off.
+//   bell            false leaves the bell off every page (1.8.2): an app that cannot ask the portal for it (no PORTAL_URL or
+//                   PORTAL_DIRECTORY_TOKEN) has no bell, rather than one whose every page load is an error
 // Resolves once a response has been written.
-export function createStaticHandler({ uiRoot, platformRoot, spa = false, signInRedirect = null, assistant = false }) {
+export function createStaticHandler({ uiRoot, platformRoot, spa = false, signInRedirect = null, assistant = false, bell = true }) {
   return async function serve(req, res, url) {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405, { 'Content-Type': 'text/plain; charset=utf-8', Allow: 'GET, HEAD' });
@@ -93,7 +95,7 @@ export function createStaticHandler({ uiRoot, platformRoot, spa = false, signInR
       res.end('The UI has not been built. Run "npm run build".');
       return;
     }
-    const options = { hashedAssets: !onPlatform, url, signInRedirect, assistant };
+    const options = { hashedAssets: !onPlatform, url, signInRedirect, assistant, bell };
     let served = await serveStatic(req, res, root, pathname, options);
     if (served === 'missing' && spa && !onPlatform && !path.extname(pathname)) {
       served = await serveStatic(req, res, root, '/index.html', options);
@@ -104,7 +106,7 @@ export function createStaticHandler({ uiRoot, platformRoot, spa = false, signInR
   };
 }
 
-async function serveStatic(req, res, root, pathname, { hashedAssets, url, signInRedirect, assistant }) {
+async function serveStatic(req, res, root, pathname, { hashedAssets, url, signInRedirect, assistant, bell }) {
   let relativePath;
   try {
     relativePath = decodeURIComponent(pathname).replace(/^\/+/, '');
@@ -146,7 +148,7 @@ async function serveStatic(req, res, root, pathname, { hashedAssets, url, signIn
 
   let file;
   try {
-    file = await loadStatic(filePath, { assistant });
+    file = await loadStatic(filePath, { assistant, bell });
   } catch (error) {
     if (error.code === 'ENOENT' || error.code === 'EISDIR' || error.code === 'ENOTDIR') return 'missing';
     throw error;
@@ -202,15 +204,15 @@ function ifNoneMatch(req, etag) {
   return header.split(',').some((part) => part.trim() === etag || part.trim() === '*');
 }
 
-// A page is kept once with Joules and once without, so the portal and an app in the same process (the tests) each get theirs.
-async function loadStatic(filePath, { assistant = false } = {}) {
+// A page is kept for each mix of Joules and the bell, so the portal and apps in the same process (the tests) each get theirs.
+async function loadStatic(filePath, { assistant = false, bell = true } = {}) {
   const info = await fs.stat(filePath);
   const page = path.extname(filePath).toLowerCase() === '.html';
-  const key = page && assistant ? `${filePath}\0assistant` : filePath;
+  const key = page ? `${filePath}\0${assistant ? 'assistant' : ''}\0${bell ? 'bell' : ''}` : filePath;
   const cached = staticCache.get(key);
   if (cached && cached.mtimeMs === info.mtimeMs && cached.size === info.size) return cached;
   const source = await fs.readFile(filePath);
-  const body = page ? withPlatformLayer(source, { assistant }) : source;
+  const body = page ? withPlatformLayer(source, { assistant, bell }) : source;
   const etag = `W/"${info.size.toString(16)}-${Math.round(info.mtimeMs).toString(16)}"`;
   const gzip = body.length >= 1024 ? gzipSync(body, { level: 6 }) : null;
   const entry = { mtimeMs: info.mtimeMs, size: info.size, body, etag, gzip: gzip && gzip.length < body.length ? gzip : null };

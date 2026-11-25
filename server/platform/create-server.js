@@ -93,6 +93,9 @@ export function createAppServer({
     spa: ui.spa === true,
     signInRedirect,
     assistant: true, // Joules, the portal's helper, in the corner of every page (web/platform/assistant.js)
+    // The bell (web/platform/bell.js) only where its routes can ask the portal: without PORTAL_URL and PORTAL_DIRECTORY_TOKEN
+    // every page's request for it would be an error, so the app has no bell (1.8.2). The log already says the token is missing.
+    bell: Boolean(config.portalUrl && config.directoryToken),
   });
 
   const server = http.createServer(async (req, res) => {
