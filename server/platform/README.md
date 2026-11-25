@@ -1,6 +1,6 @@
 # server/platform
 
-Template version: 1.8.0
+Template version: 1.8.1
 
 This folder is copied from `emg-app-template`. **Do not edit it in an app repo.** If it needs a fix, fix it in the template, then copy `server/platform/`, `web/platform/` and `test/platform/` into the app again and change the version line above. Apps stay in step by re-copying, never by diverging.
 

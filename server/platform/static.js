@@ -46,7 +46,8 @@ export const SECURITY_HEADERS = {
 //   itself in its tool row, so a page without a sidebar (signing in) never shows it.
 export const THEME_SCRIPT = '<script>try{var t=localStorage.getItem("emg-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>';
 export const ASSISTANT_SCRIPT = '<script type="module" src="/platform/assistant.js"></script>';
-export const BELL_SCRIPT = '<script type="module" src="/platform/bell.js"></script>';
+// async (1.8.1): the bell never holds back the page's DOMContentLoaded, so Joules's frame arrives exactly when it did without it.
+export const BELL_SCRIPT = '<script type="module" async src="/platform/bell.js"></script>';
 const PLATFORM_LAYER = [
   THEME_SCRIPT,
   '<link rel="stylesheet" href="/platform/db-wake.css">',

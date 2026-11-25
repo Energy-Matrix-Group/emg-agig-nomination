@@ -306,6 +306,7 @@ test('the layer adds the bell to every page, the portal\'s and an app\'s, once, 
     assert.equal(withPlatformLayer(served, options).toString(), served, 'never twice');
   }
   assert.equal(withPlatformLayer(page, { bell: false }).toString().includes(BELL_SCRIPT), false);
+  assert.match(BELL_SCRIPT, /<script type="module" async /, 'async (1.8.1): it never holds back DOMContentLoaded, so Joules\'s frame arrives as it did without it');
   const own = `<head>${BELL_SCRIPT}<script type="module" src="/platform/db-wake.js"></script></head>`;
   assert.equal(withPlatformLayer(own).toString(), own, 'a page that loads it itself is left alone');
 });

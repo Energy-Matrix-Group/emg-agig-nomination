@@ -36,8 +36,9 @@ const LAYER = '2147483000';
 export const ASIDE = 'data-emg-assistant-aside';
 export const ASIDE_EVENT = 'emg-assistant-aside';
 // What the portal's page may do: run, keep its own origin (its cookie and storage), take the chat form, open a link in a
-// new tab, and move this page only when the person clicks a link in it. Nothing else.
-const SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation';
+// new tab, save a file the person asked for (Download CSV on a table or chart he shows), and move this page only when the
+// person clicks a link in it. Nothing else.
+const SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-top-navigation-by-user-activation';
 
 // The frame's address, from what /api/me says: { origin, src }, or null when he should not be here.
 //   portalUrl, appId  from /api/me        here  this page's origin        theme  'light' or 'dark'
