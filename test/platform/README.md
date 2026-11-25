@@ -1,6 +1,6 @@
 # test/platform
 
-Template version: 1.8.0
+Template version: 1.8.1
 
 The platform's own tests, copied from `emg-app-template` with `server/platform/` and `web/platform/`. **Do not edit them in an app repo.** They do not use the app's routes: they run against a small fixture app in `support/fixture-app.js`, with a fake portal in `support/fake-portal.js`.
 

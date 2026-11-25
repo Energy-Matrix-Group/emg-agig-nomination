@@ -163,6 +163,7 @@ test('on an app page with someone signed in, the frame goes on, hidden until it 
   assert.equal(frame.title, TITLE);
   assert.match(frame.attributes.sandbox, /allow-scripts/);
   assert.match(frame.attributes.sandbox, /allow-top-navigation-by-user-activation/);
+  assert.match(frame.attributes.sandbox, /allow-downloads/, 'Download CSV on a table or chart he shows saves the file (1.8.1)');
   assert.doesNotMatch(frame.attributes.sandbox, /allow-top-navigation(?!-by-user-activation)/, 'it moves this page only when the person clicks');
   assert.equal(frame.attributes.referrerpolicy, 'no-referrer');
   assert.equal(frame.style.clipPath, HIDDEN);
