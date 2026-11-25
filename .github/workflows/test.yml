@@ -1,21 +1,22 @@
 name: Tests
 
-# Runs every test on each pull request into `test` and on each change that lands on `test`, so a broken change is caught
-# before it is merged and `test` is not left red. The same file is in every EMG app repo; it comes from emg-app-template.
+# Runs every test on each pull request into `test` or `main`, and on each change that lands on either, so a broken change is
+# caught before it is merged and neither branch is left red. The same file is in every EMG app repo; it comes from
+# emg-app-template.
 #
-# "All tests passed" is the one check to require on `test` (repository Settings, Branches). It fails when any job before
-# it did, so a job added here later needs no change to that setting.
+# "All tests passed" is the one check to require on `test` and on `main` (repository Settings, Branches). It fails when any
+# job before it did, so a job added here later needs no change to that setting.
 on:
   pull_request:
-    branches: [test]
+    branches: [test, main]
   push:
-    branches: [test]
+    branches: [test, main]
 
 permissions:
   contents: read
 
-# A pull request has one run at a time, and a newer push replaces the one before it. Every commit that lands on `test` gets
-# a run of its own, which is never cut short, so a red `test` is always traced to the change that made it.
+# A pull request has one run at a time, and a newer push replaces the one before it. Every commit that lands on `test` or
+# `main` gets a run of its own, which is never cut short, so a red branch is always traced to the change that made it.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
