@@ -8,6 +8,7 @@ import { createDirectoryClient } from './directory-client.js';
 import { answerError, createDispatcher } from './dispatch.js';
 import { handoffUrl, returnFromReferer } from './handoff.js';
 import { sendJson } from './http.js';
+import { createNotificationRoutes } from './notifications.js';
 import { createPlatformRoutes } from './platform-routes.js';
 import { createReplayGuard } from './replay-guard.js';
 import { checkApp, checkRoutes } from './router.js';
@@ -32,6 +33,7 @@ const UI_DEFAULTS = { root: 'web', spa: false, publicPaths: [] };
 //   server.ready        resolves when setup() has finished (it waits for a database that is starting)
 //   server.appContext() what setup() returned
 //   server.config       the settings it is using
+// portalFetch is how the bell's routes reach the portal (notifications.js); tests pass a fake.
 export function createAppServer({
   app,
   env = process.env,
@@ -39,6 +41,7 @@ export function createAppServer({
   directory,
   rateLimits,
   databaseRetry,
+  portalFetch,
   now = Date.now,
   root = repoRoot,
 }) {
@@ -51,6 +54,7 @@ export function createAppServer({
   const platformRoutes = [
     ...createPlatformRoutes({ config, catalog: app.catalog, replay, now }),
     ...createAssistantRoutes({ config, catalog: app.catalog, assistant: app.assistant, replay, now, limits: rateLimits }),
+    ...createNotificationRoutes({ config, fetch: portalFetch }),
   ];
   checkRoutes([app], platformRoutes);
 

@@ -42,8 +42,11 @@ export const SECURITY_HEADERS = {
 //   scripts so it wraps fetch before they can call it.
 // - on an app's pages (not the portal's, which draws him itself), Joules, the portal's helper, in the corner
 //   (web/platform/assistant.js, from 1.5.0). A module, so it runs once the page has been read, after the wait screen.
+// - on every page, the portal's and an app's, the bell (web/platform/bell.js, from 1.8.0): it waits for the sidebar and puts
+//   itself in its tool row, so a page without a sidebar (signing in) never shows it.
 export const THEME_SCRIPT = '<script>try{var t=localStorage.getItem("emg-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>';
 export const ASSISTANT_SCRIPT = '<script type="module" src="/platform/assistant.js"></script>';
+export const BELL_SCRIPT = '<script type="module" src="/platform/bell.js"></script>';
 const PLATFORM_LAYER = [
   THEME_SCRIPT,
   '<link rel="stylesheet" href="/platform/db-wake.css">',
@@ -51,11 +54,13 @@ const PLATFORM_LAYER = [
 ].join('');
 
 //   assistant  add Joules (an app's pages); a page that already loads either script is not given a second copy
-export function withPlatformLayer(html, { assistant = false } = {}) {
+//   bell       add the bell (on unless turned off); a page that already loads it is not given a second copy
+export function withPlatformLayer(html, { assistant = false, bell = true } = {}) {
   const text = Buffer.isBuffer(html) ? html.toString('utf8') : String(html);
   const layer = [
     text.includes('/platform/db-wake.js') ? '' : PLATFORM_LAYER,
     assistant && !text.includes('/platform/assistant.js') ? ASSISTANT_SCRIPT : '',
+    bell && !text.includes('/platform/bell.js') ? BELL_SCRIPT : '',
   ].join('');
   if (!layer) return Buffer.from(text);
   const opening = /<head(?:\s[^>]*)?>/i.exec(text)
