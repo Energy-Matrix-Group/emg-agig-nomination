@@ -15,8 +15,20 @@
 // A read action only looks: Joules runs it when it helps. A write action changes something, so Joules first asks for its
 // preview (what the app would do, worked out by the app, changing nothing), shows the person, and runs it only once the
 // person has said yes. `input` is a small part of JSON Schema, below; anything else is refused at boot.
+//
+// From template 1.7.0 an app may also offer Joules a set of actions for each other way a person talks to him:
+//     channels: { voice: [ ...actions ], sms: [ ...actions ] },
+// `actions` stays the chat's. A token says which way it is for (assistant-token.js, `via`), and the door then offers and
+// runs only that way's set, so an action an app keeps out of a phone call cannot be reached from one. The same action
+// object may be in more than one set. An app with no set for a way simply offers nothing there.
+//
+// A write's preview may also answer `check` (from 1.7.0): a short text the app works out from exactly what it would do
+// (a hash of its plan, say). The portal sends it back with the run, and the action finds it as `context.check`, so it can
+// refuse (409) to do anything other than what the person was shown.
 
-export const LIMITS = Object.freeze({ actions: 20, about: 800, title: 60, description: 800, properties: 12, enum: 50, text: 20000, items: 50, result: 64_000, summary: 600, fields: 12, label: 60, value: 2000, ref: 60, path: 300 });
+export const LIMITS = Object.freeze({ actions: 20, about: 800, title: 60, description: 800, properties: 12, enum: 50, text: 20000, items: 50, result: 64_000, summary: 600, fields: 12, label: 60, value: 2000, ref: 60, path: 300, check: 128 });
+export const OTHER_CHANNELS = Object.freeze(['voice', 'sms']);
+const CHECK = /^[\x21-\x7e]{1,128}$/;
 const NAME = /^[a-z][a-z0-9_]{1,39}$/;
 const PROPERTY = /^[a-z][a-zA-Z0-9_]{0,39}$/;
 const KINDS = ['read', 'write'];
@@ -32,31 +44,49 @@ export function checkAssistant(assistant, appId) {
   if (!isObject(assistant)) problems.push('assistant must be an object');
   else {
     if (!isText(assistant.about, LIMITS.about)) problems.push(`assistant.about must be text of at most ${LIMITS.about} characters`);
-    const actions = Array.isArray(assistant.actions) ? assistant.actions : null;
-    if (!actions) problems.push('assistant.actions must be a list');
-    else {
-      if (actions.length > LIMITS.actions) problems.push(`assistant.actions has more than ${LIMITS.actions} actions`);
-      const names = new Set();
-      for (const action of actions) {
-        const where = `assistant action ${isObject(action) && typeof action.name === 'string' ? action.name : '?'}`;
-        if (!isObject(action)) {
-          problems.push('every assistant action must be an object');
-          continue;
+    problems.push(...actionsProblems(assistant.actions, 'assistant.actions', 'assistant action'));
+    if (assistant.channels !== undefined) {
+      if (!isObject(assistant.channels)) problems.push('assistant.channels must be an object');
+      else {
+        for (const [channel, list] of Object.entries(assistant.channels)) {
+          if (!OTHER_CHANNELS.includes(channel)) problems.push(`assistant.channels.${channel}: the ways are ${OTHER_CHANNELS.join(' and ')} (the chat's actions are assistant.actions)`);
+          else problems.push(...actionsProblems(list, `assistant.channels.${channel}`, `assistant ${channel} action`));
         }
-        if (!NAME.test(String(action.name))) problems.push(`${where}: name must be lower case letters, digits and _, 2 to 40 long`);
-        else if (names.has(action.name)) problems.push(`${where}: the name is used twice`);
-        names.add(action.name);
-        if (!KINDS.includes(action.kind)) problems.push(`${where}: kind must be read or write`);
-        if (!isText(action.title, LIMITS.title)) problems.push(`${where}: title must be text of at most ${LIMITS.title} characters`);
-        if (!isText(action.description, LIMITS.description)) problems.push(`${where}: description must be text of at most ${LIMITS.description} characters`);
-        if (typeof action.run !== 'function') problems.push(`${where}: run must be a function`);
-        if (action.kind === 'write' && typeof action.preview !== 'function') problems.push(`${where}: a write action needs a preview function`);
-        if (action.kind === 'read' && action.preview !== undefined) problems.push(`${where}: a read action has no preview`);
-        problems.push(...schemaProblems(action.input).map((problem) => `${where}: ${problem}`));
       }
     }
   }
   if (problems.length) throw new Error(`${appId} assistant cannot be served:\n${problems.map((line) => `  - ${line}`).join('\n')}`);
+}
+
+function actionsProblems(actions, listName, label) {
+  if (!Array.isArray(actions)) return [`${listName} must be a list`];
+  const problems = [];
+  if (actions.length > LIMITS.actions) problems.push(`${listName} has more than ${LIMITS.actions} actions`);
+  const names = new Set();
+  for (const action of actions) {
+    const where = `${label} ${isObject(action) && typeof action.name === 'string' ? action.name : '?'}`;
+    if (!isObject(action)) {
+      problems.push(`every ${label} must be an object`);
+      continue;
+    }
+    if (!NAME.test(String(action.name))) problems.push(`${where}: name must be lower case letters, digits and _, 2 to 40 long`);
+    else if (names.has(action.name)) problems.push(`${where}: the name is used twice`);
+    names.add(action.name);
+    if (!KINDS.includes(action.kind)) problems.push(`${where}: kind must be read or write`);
+    if (!isText(action.title, LIMITS.title)) problems.push(`${where}: title must be text of at most ${LIMITS.title} characters`);
+    if (!isText(action.description, LIMITS.description)) problems.push(`${where}: description must be text of at most ${LIMITS.description} characters`);
+    if (typeof action.run !== 'function') problems.push(`${where}: run must be a function`);
+    if (action.kind === 'write' && typeof action.preview !== 'function') problems.push(`${where}: a write action needs a preview function`);
+    if (action.kind === 'read' && action.preview !== undefined) problems.push(`${where}: a read action has no preview`);
+    problems.push(...schemaProblems(action.input).map((problem) => `${where}: ${problem}`));
+  }
+  return problems;
+}
+
+// The check the portal sends back with a run, or an error in words: text of printable characters, at most 128.
+export function readCheck(value) {
+  if (value === undefined || value === null) return { value: null };
+  return typeof value === 'string' && CHECK.test(value) ? { value } : { error: `"check" must be the text the preview gave, at most ${LIMITS.check} characters.` };
 }
 
 function schemaProblems(schema) {
@@ -145,7 +175,7 @@ function valueProblem(property, value) {
 
 // What a handler gave back, in the one shape Joules reads, or an Error (a bug in the app: the platform logs it and answers 500).
 //   read  run      { result }                    any JSON, at most 64 KB
-//   write preview  { preview: { summary, fields } }
+//   write preview  { preview: { summary, fields, check? } }   check from 1.7.0
 //   write run      { done: { summary, ref, path } }   path is a page of this app, such as /tickets/42
 export function shapeOutcome(kind, mode, outcome) {
   if (kind === 'read') {
@@ -159,7 +189,12 @@ export function shapeOutcome(kind, mode, outcome) {
     if (!Array.isArray(fields) || fields.length > LIMITS.fields || !fields.every((field) => isObject(field) && isText(field.label, LIMITS.label) && typeof field.value === 'string' && field.value.length <= LIMITS.value)) {
       throw new Error(`A preview's fields must be at most ${LIMITS.fields} of { label, value }.`);
     }
-    return { preview: { summary: outcome.summary, fields: fields.map(({ label, value }) => ({ label, value })) } };
+    const preview = { summary: outcome.summary, fields: fields.map(({ label, value }) => ({ label, value })) };
+    if (outcome.check !== undefined) {
+      if (typeof outcome.check !== 'string' || !CHECK.test(outcome.check)) throw new Error(`A preview's check must be printable text of at most ${LIMITS.check} characters, with no spaces.`);
+      preview.check = outcome.check;
+    }
+    return { preview };
   }
   const done = { summary: outcome.summary };
   if (outcome.ref !== undefined) {

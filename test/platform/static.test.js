@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { createAppServer } from '../../server/platform/create-server.js';
-import { ASSISTANT_SCRIPT, THEME_SCRIPT, withPlatformLayer } from '../../server/platform/static.js';
+import { ASSISTANT_SCRIPT, BELL_SCRIPT, THEME_SCRIPT, withPlatformLayer } from '../../server/platform/static.js';
 import { createFakePortal } from './support/fake-portal.js';
 import { createFixtureApp } from './support/fixture-app.js';
 import { repoRoot } from './support/source-files.js';
@@ -293,9 +293,21 @@ test('the layer adds Joules only when asked (the portal draws him itself), and n
   assert.equal(withPlatformLayer(app, { assistant: true }).toString(), app);
   // A page that loads the wait screen itself still gets Joules, and one that loads him itself is left alone.
   const own = '<head><script type="module" src="/platform/db-wake.js"></script></head>';
-  assert.equal(withPlatformLayer(own, { assistant: true }).toString(), `<head>${ASSISTANT_SCRIPT}<script type="module" src="/platform/db-wake.js"></script></head>`);
+  assert.equal(withPlatformLayer(own, { assistant: true, bell: false }).toString(), `<head>${ASSISTANT_SCRIPT}<script type="module" src="/platform/db-wake.js"></script></head>`);
   const ownBoth = `<head>${ASSISTANT_SCRIPT}<script type="module" src="/platform/db-wake.js"></script></head>`;
-  assert.equal(withPlatformLayer(ownBoth, { assistant: true }).toString(), ownBoth);
+  assert.equal(withPlatformLayer(ownBoth, { assistant: true, bell: false }).toString(), ownBoth);
+});
+
+test('the layer adds the bell to every page, the portal\'s and an app\'s, once, unless it is turned off (1.8.0)', () => {
+  const page = '<!doctype html><html><head><title>x</title></head><body></body></html>';
+  for (const options of [{}, { assistant: true }]) {
+    const served = withPlatformLayer(page, options).toString();
+    assert.equal(served.split(BELL_SCRIPT).length, 2, JSON.stringify(options));
+    assert.equal(withPlatformLayer(served, options).toString(), served, 'never twice');
+  }
+  assert.equal(withPlatformLayer(page, { bell: false }).toString().includes(BELL_SCRIPT), false);
+  const own = `<head>${BELL_SCRIPT}<script type="module" src="/platform/db-wake.js"></script></head>`;
+  assert.equal(withPlatformLayer(own).toString(), own, 'a page that loads it itself is left alone');
 });
 
 test('only pages are changed, and they stay correctly sized, revalidated and compressible', async () => {
@@ -321,7 +333,7 @@ test('a page that already loads the script is not given a second copy', () => {
   const once = withPlatformLayer('<!doctype html><html><head><title>x</title></head><body></body></html>').toString();
   assert.equal(withPlatformLayer(once).toString(), once);
   const own = '<head><script type="module" src="/platform/db-wake.js"></script></head>';
-  assert.equal(withPlatformLayer(own).toString(), own);
+  assert.equal(withPlatformLayer(own, { bell: false }).toString(), own);
 });
 
 test('the layer goes in whatever way a page is written', () => {
@@ -332,7 +344,7 @@ test('the layer goes in whatever way a page is written', () => {
     'a fragment': ['<p>demo</p>', ''],
   };
   for (const [name, [html, before]] of Object.entries(cases)) {
-    assert.equal(withPlatformLayer(html).toString(), `${before}${THEME_SCRIPT}${LINK}${SCRIPT}${html.slice(before.length)}`, name);
+    assert.equal(withPlatformLayer(html).toString(), `${before}${THEME_SCRIPT}${LINK}${SCRIPT}${BELL_SCRIPT}${html.slice(before.length)}`, name);
   }
   assert.equal(withPlatformLayer('<header>not a head</header>').toString().startsWith(THEME_SCRIPT), true);
 });

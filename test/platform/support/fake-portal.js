@@ -83,8 +83,8 @@ export function createFakePortal({ appId = 'echo' } = {}) {
 
     // A token the portal would send with Joules's call to `app` for this user, allowed to do `act` ('manifest',
     // 'preview:<action>' or 'run:<action>').
-    assistantToken(user, act, { app = appId, now = Date.now(), id } = {}) {
-      return issueAssistantToken({ user, appId: app, act, privateKey, now, id });
+    assistantToken(user, act, { app = appId, now = Date.now(), id, via, session } = {}) {
+      return issueAssistantToken({ user, appId: app, act, privateKey, now, id, via, session });
     },
 
     // The settings the app needs, as the Render dashboard would give them. Extra settings win.
